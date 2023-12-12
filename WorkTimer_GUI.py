@@ -43,7 +43,7 @@ class Window(QWidget):
             self.projecthandler=work_project(project,feedback, self.sheet,self.skiprow)
         else:
             self.openprj()
-            self.projecthandler = work_project(project, feedback, self.sheet,self.skiprow)
+            self.projecthandler = work_project(self.project, feedback, self.sheet,self.skiprow)
         self.listofworks=self.projecthandler.listofwork
         from pathlib import Path
         self.nameprj = Path(project).name
@@ -247,14 +247,6 @@ class Window(QWidget):
             self.project=filename[0]
             self.configini['PRJ']['acutalproject']=filename[0]
             self.confighand.writevalue(self.configini)
-            filename = QFileDialog.getOpenFileName()
-
-            if filename != "":
-                self.dbfile = filename[0]
-                self.configini['PRJ']['actualdatabase'] = filename[0]
-                self.confighand.writevalue(self.configini)
-            else:
-                return None
 
         else:
             return None
