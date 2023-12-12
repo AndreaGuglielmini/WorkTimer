@@ -1,7 +1,9 @@
+# TBD Minutes are displayed without 0
+
 
 import pyqtgraph as pg
 
-import time, datetime
+import datetime
 from datetime import timedelta, datetime
 
 from dialogs import *
@@ -13,31 +15,41 @@ pg.setConfigOptions(antialias=True, useOpenGL=True)
 class Window(QWidget):
 
 
-    def __init__(self, version, project, dbfile, feedback, config,confighand):
+    def __init__(self, version, project, feedback,confighand):
         QWidget.__init__(self)
         layout = QGridLayout()
         self.setLayout(layout)
         self.version = version
         self.feedback=feedback
-        self.config=config
         self.confighand=confighand
-        self.dbfile=dbfile
-        self.sheet='Lavori'  #TBD parametrizzabile in config.ini
 
-        self.actualproject=""
-        self.actualprojectruntime=0
-        self.isprojectrunning=False
-        self.skiprow=5
+        self.configini = confighand.configreadout()
+        self.sheet=self.configini['PRJ']['sheet']
+        self.skiprow = int(self.configini['PRJ']['skiprow'])
+        self.step = int(self.configini['PRJ']['stepminutes'])
+
+        self.isprojectrunning = self.configini.getboolean('RUN','isprojectrunning')
+        if self.isprojectrunning:
+            self.actualprojectruntime = self.configini['RUN']['actualprojectruntime']
+            self.actualproject = int(self.configini['RUN']['actualproject'])
+        else:
+            self.actualproject=""
+            self.actualprojectruntime=0
+            self.isprojectrunning=False
+
 
         from DB_lib import work_project
         if project != "":
-            self.projecthandler=work_project(project,feedback, self.sheet)
+            self.projecthandler=work_project(project,feedback, self.sheet,self.skiprow)
         else:
             self.openprj()
-            self.projecthandler = work_project(project, feedback)
+            self.projecthandler = work_project(project, feedback, self.sheet,self.skiprow)
         self.listofworks=self.projecthandler.listofwork
+        from pathlib import Path
+        self.nameprj = Path(project).name
+        self.pathprj=Path(project).parent
 
-        self.setWindowTitle("Work Timer "+ str(version)+"  - PROJECT "+project)
+        self.setWindowTitle("Work Timer "+ str(version)+"  - PROJECT "+self.nameprj)
 
         menurow=0
         column1=0
@@ -70,7 +82,7 @@ class Window(QWidget):
         self.exittoolbtn.clicked.connect(self.exittool)
         layout.addWidget(self.exittoolbtn, menurow, column3)
 
-        self.numerorighe=10
+        self.numerorighe = 10
         ### ROW 2 to maxrow ###
         menurow = menurow+1
         self.maxrow = menurow+self.numerorighe
@@ -84,7 +96,12 @@ class Window(QWidget):
         self.listofelements=[]
 
         linerow=0
-        for index in range(menurow,self.maxrow):
+        if len(self.listofworks) > self.numerorighe:
+            items=self.maxrow       #TBD pulsanti di pagina
+        else:
+            items=len(self.listofworks)+1
+
+        for index in range(menurow,items):
             self.listofelements.append(linerow)
             self.LineAzienda.append(QLineEdit())
             self.LineAzienda[linerow].setPlaceholderText("")
@@ -130,7 +147,7 @@ class Window(QWidget):
             layout.addWidget(self.LineOreLavorate[-1],linerow+1,column6)
             linerow=linerow+1
 
-        self.updateGUI()
+
         menurow=menurow+linerow
         self.stopbtn = QPushButton('Stop timer', self)
         self.stopbtn.clicked.connect(self.stopcounter)
@@ -147,12 +164,37 @@ class Window(QWidget):
         self.LasRunProject.setStyleSheet("border: 1px solid grey;background-color: green ")
         self.LasRunProject.setEnabled(False)
         layout.addWidget(self.LasRunProject,menurow,column3)
+
+        self.ElapsedTimeProject=QLineEdit()
+        self.ElapsedTimeProject.setPlaceholderText("---")
+        self.ElapsedTimeProject.setStyleSheet("border: 1px solid grey;background-color: green ")
+        self.ElapsedTimeProject.setEnabled(False)
+        layout.addWidget(self.ElapsedTimeProject,menurow,column4)
+
+
+        self.updateGUI()
     def stopcounter(self):
+        self.configini = self.confighand.configreadout()
+        runningfromini=self.configini.getboolean('RUN','isprojectrunning')
+        if self.isprojectrunning!=runningfromini:
+            self.feedback=("Mismatch execution of timer, aborting..")
+            self.isprojectrunning = False
+            self.actualprojectruntime = 0
+            self.actualproject=''
+            self.configini['RUN']['isprojectrunning']=self.isprojectrunning
+            self.configini['RUN']['actualprojectruntime']=self.actualprojectruntime
+            self.configini['RUN']['actualproject']=self.actualproject
+            return 0
+
         if self.isprojectrunning :
             end = datetime.now()
+
+            #Always load from config.ini, because we can arrive from a closed app until running..
+            self.isprojectrunning=self.configini.getboolean('RUN','isprojectrunning')
+            self.actualprojectruntime=datetime.strptime(self.configini['RUN']['actualprojectruntime'],'%y/%m/%d, %H:%M:%S')
+            self.actualproject=int(self.configini['RUN']['actualproject'])
             seconds = (end - self.actualprojectruntime).total_seconds()
-            step = 15
-            timeelapsed=round(seconds/60/step,0)*0.25
+            timeelapsed=round(seconds/60/self.step,0)*0.25
             try:
                 actualvalue=int(self.listofworks[self.actualproject][self.projecthandler.columnOreLavorate])
             except:
@@ -162,15 +204,19 @@ class Window(QWidget):
             else:
                 updatevalue=timeelapsed
 
-            self.projecthandler.writevalue(updatevalue, self.actualproject+self.skiprow, self.projecthandler.columnOreLavorate, self.sheet)  # TBD
+            self.projecthandler.writevalue(updatevalue, self.actualproject+self.skiprow+2, self.projecthandler.columnOreLavorate, self.sheet)  # TBD skiprow + 2 is not best practice...
+            self.csv_handler(self.actualprojectruntime,end)
             self.isprojectrunning = False
-            self.actualprojectruntime=0
+            self.actualprojectruntime = 0
+            self.actualproject=''
+            self.configini['RUN']['isprojectrunning']=str(self.isprojectrunning)
+            self.configini['RUN']['actualprojectruntime']=str(self.actualprojectruntime)
+            self.configini['RUN']['actualproject']=str(self.actualproject)
+            self.confighand.writevalue(self.configini)
             self.updateprj()
             self.updateGUI()
 
     def startcounter(self):
-        #TBD save to inifile the start and the status
-        # TBD save to csv file all fields
         sender = self.sender()
         print(sender.text() + ' was pressed')
         self.actualproject=int(sender.text()[-1])
@@ -181,38 +227,37 @@ class Window(QWidget):
             self.RunningProject.setStyleSheet("border: 1px solid grey;background-color: yellow ")
             if not self.isprojectrunning:
                 self.isprojectrunning=True
-                self.actualprojectruntime = datetime.now()
-                hour=self.actualprojectruntime.hour
-                minute=self.actualprojectruntime.minute
-                self.LasRunProject.setText(str(hour)+":"+str(minute))
-                self.LasRunProject.setStyleSheet("border: 1px solid grey;background-color: yellow ")
+                now = datetime.now()
+                self.actualprojectruntime=now.strftime('%y/%m/%d, %H:%M:%S')
+
+
             else:
-                self.feedback("Project already running, please stop first")
-
-
-
+                self.feedback("Project already running, please stop first","ok")
+                return 0
+        self.configini['RUN']['actualproject']=str(self.actualproject)
+        self.configini['RUN']['actualprojectruntime']=str(self.actualprojectruntime)
+        self.configini['RUN']['isprojectrunning']=str(self.isprojectrunning)
+        self.confighand.writevalue(self.configini)
+        self.updateGUI()
 
     def openprj(self):
         filename = QFileDialog.getOpenFileName()
 
         if filename != "":
             self.project=filename[0]
-            self.config['PRJ']['acutalproject']=filename[0]
-            self.confighand.writevalue(self.config)
+            self.configini['PRJ']['acutalproject']=filename[0]
+            self.confighand.writevalue(self.configini)
             filename = QFileDialog.getOpenFileName()
 
             if filename != "":
                 self.dbfile = filename[0]
-                self.config['PRJ']['actualdatabase'] = filename[0]
-                self.confighand.writevalue(self.config)
+                self.configini['PRJ']['actualdatabase'] = filename[0]
+                self.confighand.writevalue(self.configini)
             else:
                 return None
 
         else:
             return None
-
-
-
 
     def updateprj(self):
         self.projecthandler.read_excel(self.sheet)
@@ -222,12 +267,30 @@ class Window(QWidget):
 
 
     def saveprj(self):
+        self.feedback("Not implemented","ok")
         pass
 
     def exittool(self):
         exit()
 
     def updateGUI(self):
+        if self.isprojectrunning:
+            self.LasRunProject.setText(self.actualprojectruntime)
+            self.LasRunProject.setStyleSheet("border: 1px solid grey;background-color: yellow ")
+            self.RunningProject.setText((self.listofworks[self.actualproject][self.projecthandler.columnscheda]))
+            self.RunningProject.setStyleSheet("border: 1px solid grey;background-color: yellow ")
+            time = datetime.now()
+            elapsed=(time - datetime.strptime(self.actualprojectruntime,'%y/%m/%d, %H:%M:%S')).total_seconds()
+            elapsed = round(elapsed / 60 / self.step, 0) * 0.25
+            self.ElapsedTimeProject.setText(str(elapsed))
+            self.ElapsedTimeProject.setStyleSheet("border: 1px solid grey;background-color: yellow ")
+        else:
+            self.LasRunProject.setText("---")
+            self.LasRunProject.setStyleSheet("border: 1px solid grey;background-color: green ")
+            self.RunningProject.setText("---")
+            self.RunningProject.setStyleSheet("border: 1px solid grey;background-color: green ")
+            self.ElapsedTimeProject.setText("--")
+            self.ElapsedTimeProject.setStyleSheet("border: 1px solid grey;background-color: green ")
         if len(self.listofworks)<self.numerorighe:
             max=len(self.listofworks)
         else:
@@ -239,3 +302,19 @@ class Window(QWidget):
             self.LineOREp[index].setText(str(self.listofworks[index][self.projecthandler.columnOrePrev]))
             self.LinePreventivo[index].setText(str(self.listofworks[index][self.projecthandler.columnPreventivo]))
             self.LineOreLavorate[index].setText(str(self.listofworks[index][self.projecthandler.columnOreLavorate]))
+
+    def csv_handler(self, timestart, timestop):
+        csvfile=str(self.pathprj)+"/dbfile/"+(self.listofworks[self.actualproject][self.projecthandler.columnscheda])+".csv"
+        with open(csvfile,"a") as f:
+            sday=timestart.day
+            smonth=timestart.month
+            shour=timestart.hour
+            sminute=timestart.minute
+            sminute=round(sminute/self.step)
+            sthour=timestop.hour
+            stminute=timestop.minute
+            f.write(str(sday)+"/"+str(smonth)+";"+str(shour)+":"+str(sminute)+";"+str(sthour)+":"+str(stminute)+"/n")
+        f.close()
+
+
+

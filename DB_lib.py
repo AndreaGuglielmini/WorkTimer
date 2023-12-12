@@ -14,11 +14,12 @@ from PyQt5.QtCore import  Qt
 import openpyxl
 
 class work_project:
-    def __init__(self, excelfile,feedback, sheet):
+    def __init__(self, excelfile,feedback, sheet, skip=0):
 
 
         self.feedback=feedback
         self.excelfile=excelfile
+        self.skip=skip
         ## EXCEL FILE STRUCTURE, import from row 5##
         ## AZIENDA | CLIENTE | Nome Scheda | Ore Preventivo | Prezzo Unitario | Preventivo | Preventivo no rivalsa | Ore Lavorate | Stato
 
@@ -43,24 +44,22 @@ class work_project:
         splash.show()
         self.cat_list_raw=[]
         self.cat_header=[]
+
+
+        print("loading -> "+self.excelfile)
+        splash.showMessage(self.excelfile, alignment=Qt.AlignBottom, color=Qt.black)
+        progressBar.setValue(0)
         try:
-
-            print("loading -> "+self.excelfile)
-            splash.showMessage(self.excelfile, alignment=Qt.AlignBottom, color=Qt.black)
-            progressBar.setValue(0)
-            try:
-                cat_dataframe = pd.read_excel(self.excelfile, sheet, skiprows=3)
-            except Exception as re:
-                print(re)
-                print("Requires openpyxl version 3.0.10 to work properly")
-                self.feedback("Requires openpyxl version 3.0.10 to work properly\r\n"+"Close all excel file before executing\r\n"+re)
-                exit()
-            self.cat_header = cat_dataframe.columns.tolist()
-            self.cat_list_raw = cat_dataframe.values.tolist()
-
+            cat_dataframe = pd.read_excel(self.excelfile, sheet, skiprows=self.skip)
         except Exception as re:
-            print("Error loading files:"+str(re))
-            self.feedback("Close all excel file before executing\r\n"+"Error loading Project "+str(re))
+            print(re)
+            print("Requires openpyxl version 3.0.10 to work properly")
+            self.feedback("Requires openpyxl version 3.0.10 to work properly\r\n"+"Close all excel file before executing\r\n"+str(re),"ok")
+            return 0
+        self.cat_header = cat_dataframe.columns.tolist()
+        self.cat_list_raw = cat_dataframe.values.tolist()
+
+
         try:
             splash.close()
         except Exception as re:

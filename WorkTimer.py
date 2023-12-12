@@ -67,7 +67,7 @@ if __name__ == "__main__":
 
 
     from WorkTimer_GUI import Window
-    screen = Window(version, project,db_csv, messageshow, config,confighand)
+    screen = Window(version, project, messageshow,confighand)
     screen.show()
 
     sys.exit(app.exec_())
