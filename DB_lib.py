@@ -96,3 +96,14 @@ class work_project:
         worksheet[writeto] = value
         writer.save(self.excelfile)
         writer.close()
+
+    def updatelist(self, runningprj, filter):
+        found=0
+        listofworks=[]
+        for element in self.listofwork:
+            if element[self.columnStato] == filter:
+                listofworks.append(element)
+            if element[self.columnscheda]==runningprj:
+                listofworks.append(element)
+                found=len(listofworks)
+        return listofworks, found
