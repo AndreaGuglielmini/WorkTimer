@@ -2,6 +2,9 @@
 # TBD review prj update
 # TBD filter project based on status
 # TBD config ini configurable with interface
+# TBD Force edit before update timer
+# TBD lost filters on excel file after update
+# TBD handle errors when is project running and are added some lines in excel
 
 import datetime
 from datetime import timedelta, datetime
@@ -14,8 +17,8 @@ class Window(QWidget):
 
     def __init__(self, version, project, feedback,confighand):
         QWidget.__init__(self)
-        layout = QGridLayout()
-        self.setLayout(layout)
+        self.layout = QGridLayout()
+        self.setLayout(self.layout)
         self.version = version
         self.feedback=feedback
 
@@ -46,9 +49,7 @@ class Window(QWidget):
         else:
             self.openprj()
             self.projecthandler = work_project(self.project, feedback, self.sheet,self.skiprow)
-        self.listofworks, prjrun=self.projecthandler.updatelist(self.actualprojectname, self.filterprj)
-        if prjrun>0:
-            self.actualproject=prjrun
+        self.updatelist()
 
         import os
         self.nameprj = os.path.basename(project)
@@ -73,19 +74,19 @@ class Window(QWidget):
 
         self.OpenPRJbtn = QPushButton('Open Prj', self)
         self.OpenPRJbtn.clicked.connect(self.openprj)
-        layout.addWidget(self.OpenPRJbtn, menurow, self.column1)
+        self.layout.addWidget(self.OpenPRJbtn, menurow, self.column1)
 
         self.UpdatePRJbtn = QPushButton('Update Prj', self)
         self.UpdatePRJbtn.clicked.connect(self.updateprj)
-        layout.addWidget(self.UpdatePRJbtn, menurow, self.column2)
+        self.layout.addWidget(self.UpdatePRJbtn, menurow, self.column2)
 
         self.SavePRJbtn = QPushButton('Save Prj', self)
         self.SavePRJbtn.clicked.connect(self.saveprj)
-        layout.addWidget(self.SavePRJbtn, menurow, self.column3)
+        self.layout.addWidget(self.SavePRJbtn, menurow, self.column3)
 
         self.exittoolbtn = QPushButton('Exit tool', self)
         self.exittoolbtn.clicked.connect(self.exittool)
-        layout.addWidget(self.exittoolbtn, menurow, self.column3)
+        self.layout.addWidget(self.exittoolbtn, menurow, self.column3)
 
         self.numerorighe = 10
         ### ROW 2 to maxrow ###
@@ -101,87 +102,63 @@ class Window(QWidget):
         self.listofelements=[]
 
         linerow=0
-        if len(self.listofworks) > self.numerorighe:
-            items=self.maxrow       #TBD pulsanti di pagina
+        if len(self.projecthandler.listofwork) > self.numerorighe:
+            self.items=self.maxrow       #TBD pulsanti di pagina
         else:
-            items=len(self.listofworks)+1
+            self.items=len(self.projecthandler.listofwork)+1
 
-        for index in range(menurow,items):
-            self.increaserow(layout, linerow)
+        for index in range(menurow,self.maxrow):
+            self.increaserow(linerow)
             linerow = linerow + 1
 
-
-        menurow=menurow+linerow
+        menurow = menurow + linerow
         self.stopbtn = QPushButton('Stop timer', self)
         self.stopbtn.clicked.connect(self.stopcounter)
-        layout.addWidget(self.stopbtn, menurow, self.column1)
+        self.layout.addWidget(self.stopbtn, menurow, self.column1)
 
-        self.RunningProject=QLineEdit()
+        self.RunningProject = QLineEdit()
         self.RunningProject.setPlaceholderText("---")
         self.RunningProject.setStyleSheet("border: 1px solid grey;background-color: green ")
         self.RunningProject.setEnabled(False)
-        layout.addWidget(self.RunningProject,menurow,self.column2)
+        self.layout.addWidget(self.RunningProject, menurow, self.column2)
 
-        self.LasRunProject=QLineEdit()
+        self.LasRunProject = QLineEdit()
         self.LasRunProject.setPlaceholderText("---")
         self.LasRunProject.setStyleSheet("border: 1px solid grey;background-color: green ")
         self.LasRunProject.setEnabled(False)
-        layout.addWidget(self.LasRunProject,menurow,self.column3)
+        self.layout.addWidget(self.LasRunProject, menurow, self.column3)
 
-        self.ElapsedTimeProject=QLineEdit()
+        self.ElapsedTimeProject = QLineEdit()
         self.ElapsedTimeProject.setPlaceholderText("---")
         self.ElapsedTimeProject.setStyleSheet("border: 1px solid grey;background-color: green ")
         self.ElapsedTimeProject.setEnabled(False)
-        layout.addWidget(self.ElapsedTimeProject,menurow,self.column4)
+        self.layout.addWidget(self.ElapsedTimeProject, menurow, self.column4)
+
+        self.FilterBtn = QCheckBox()
+        self.FilterBtn.setText("Active Filter")
+        self.FilterBtn.setEnabled(True)
+        self.FilterBtn.setChecked(True)
+        self.FilterBtn.stateChanged.connect(self.updatefilter)
+        self.layout.addWidget(self.FilterBtn, menurow, self.column5)
 
 
         self.updateGUI()
 
+    def updatefilter(self):
+        if self.FilterBtn.isChecked():
+            self.updatelist(True)
+        else:
+            self.updatelist(False)
+        self.updateGUI()       #cabled value, TBD
 
-    def increaserow(self, layout, linerow):
-        self.listofelements.append(linerow)
-        self.LineAzienda.append(QLineEdit())
-        self.LineAzienda[linerow].setPlaceholderText("")
-        self.LineAzienda[linerow].setStyleSheet("border: 1px solid grey;")
-        self.LineAzienda[linerow].setEnabled(False)
-
-        self.LineCliente.append(QLineEdit())
-        self.LineCliente[linerow].setPlaceholderText("")
-        self.LineCliente[linerow].setStyleSheet("border: 1px solid grey;")
-        self.LineCliente[linerow].setEnabled(False)
-
-        self.LineNomeScheda.append(QLineEdit())
-        self.LineNomeScheda[linerow].setPlaceholderText("")
-        self.LineNomeScheda[linerow].setStyleSheet("border: 1px solid grey;")
-        self.LineNomeScheda[linerow].setEnabled(False)
-
-        self.LineOREp.append(QLineEdit())
-        self.LineOREp[linerow].setPlaceholderText("")
-        self.LineOREp[linerow].setStyleSheet("border: 1px solid grey;")
-        self.LineOREp[linerow].setEnabled(False)
-
-        self.LinePreventivo.append(QLineEdit())
-        self.LinePreventivo[linerow].setPlaceholderText("")
-        self.LinePreventivo[linerow].setStyleSheet("border: 1px solid grey;")
-        self.LinePreventivo[linerow].setEnabled(False)
-
-        self.LineOreLavorate.append(QLineEdit())
-        self.LineOreLavorate[linerow].setPlaceholderText("")
-        self.LineOreLavorate[linerow].setStyleSheet("border: 1px solid grey;")
-        self.LineOreLavorate[linerow].setEnabled(False)
-
-        self.btnstart.append(QPushButton('Start timer ' + str(linerow), self))
-        self.btnstart[linerow].clicked.connect(self.startcounter)
-        layout.addWidget(self.btnstart[-1], linerow + 1, self.column7)
-
-        layout.addWidget(self.LineAzienda[-1], linerow + 1, self.column1)
-        layout.addWidget(self.LineCliente[-1], linerow + 1, self.column2)
-        layout.addWidget(self.LineNomeScheda[-1], linerow + 1, self.column3)
-        layout.addWidget(self.LineOREp[-1], linerow + 1, self.column4)
-        layout.addWidget(self.LinePreventivo[-1], linerow + 1, self.column5)
-        layout.addWidget(self.LineOreLavorate[-1], linerow + 1, self.column6)
-
-
+    def updatelist(self, usefilter=True):
+        if usefilter:
+            filter=self.filterprj
+        else:
+            filter="all"
+        self.listofworks, prjrun=self.projecthandler.updatelist(self.actualprojectname, filter)
+        if prjrun>0:
+            self.actualproject=prjrun
 
     def stopcounter(self):
         self.configini = self.confighand.configreadout()
@@ -299,17 +276,66 @@ class Window(QWidget):
             self.RunningProject.setStyleSheet("border: 1px solid grey;background-color: green ")
             self.ElapsedTimeProject.setText("--")
             self.ElapsedTimeProject.setStyleSheet("border: 1px solid grey;background-color: green ")
-        if len(self.listofworks)<self.numerorighe:
-            max=len(self.listofworks)
-        else:
-            max=self.numerorighe
-        for index in range(0, max):
-            self.LineAzienda[index].setText(self.listofworks[index][self.projecthandler.columnazienda])
-            self.LineCliente[index].setText(self.listofworks[index][self.projecthandler.columncliente])
-            self.LineNomeScheda[index].setText(self.listofworks[index][self.projecthandler.columnscheda])
-            self.LineOREp[index].setText(str(self.listofworks[index][self.projecthandler.columnOrePrev]))
-            self.LinePreventivo[index].setText(str(self.listofworks[index][self.projecthandler.columnPreventivo]))
-            self.LineOreLavorate[index].setText(str(self.listofworks[index][self.projecthandler.columnOreLavorate]))
+
+        for index in range(0, self.numerorighe):
+            if index<len(self.listofworks):
+                self.LineAzienda[index].setText(self.listofworks[index][self.projecthandler.columnazienda])
+                self.LineCliente[index].setText(self.listofworks[index][self.projecthandler.columncliente])
+                self.LineNomeScheda[index].setText(self.listofworks[index][self.projecthandler.columnscheda])
+                self.LineOREp[index].setText(str(self.listofworks[index][self.projecthandler.columnOrePrev]))
+                self.LinePreventivo[index].setText(str(self.listofworks[index][self.projecthandler.columnPreventivo]))
+                self.LineOreLavorate[index].setText(str(self.listofworks[index][self.projecthandler.columnOreLavorate]))
+            else:
+                self.LineAzienda[index].setText("")
+                self.LineCliente[index].setText("")
+                self.LineNomeScheda[index].setText("")
+                self.LineOREp[index].setText("")
+                self.LinePreventivo[index].setText("")
+                self.LineOreLavorate[index].setText("")
+
+
+    def increaserow(self,linerow):
+        self.listofelements.append(linerow)
+        self.LineAzienda.append(QLineEdit())
+        self.LineAzienda[linerow].setPlaceholderText("")
+        self.LineAzienda[linerow].setStyleSheet("border: 1px solid grey;")
+        self.LineAzienda[linerow].setEnabled(False)
+
+        self.LineCliente.append(QLineEdit())
+        self.LineCliente[linerow].setPlaceholderText("")
+        self.LineCliente[linerow].setStyleSheet("border: 1px solid grey;")
+        self.LineCliente[linerow].setEnabled(False)
+
+        self.LineNomeScheda.append(QLineEdit())
+        self.LineNomeScheda[linerow].setPlaceholderText("")
+        self.LineNomeScheda[linerow].setStyleSheet("border: 1px solid grey;")
+        self.LineNomeScheda[linerow].setEnabled(False)
+
+        self.LineOREp.append(QLineEdit())
+        self.LineOREp[linerow].setPlaceholderText("")
+        self.LineOREp[linerow].setStyleSheet("border: 1px solid grey;")
+        self.LineOREp[linerow].setEnabled(False)
+
+        self.LinePreventivo.append(QLineEdit())
+        self.LinePreventivo[linerow].setPlaceholderText("")
+        self.LinePreventivo[linerow].setStyleSheet("border: 1px solid grey;")
+        self.LinePreventivo[linerow].setEnabled(False)
+
+        self.LineOreLavorate.append(QLineEdit())
+        self.LineOreLavorate[linerow].setPlaceholderText("")
+        self.LineOreLavorate[linerow].setStyleSheet("border: 1px solid grey;")
+        self.LineOreLavorate[linerow].setEnabled(False)
+
+        self.btnstart.append(QPushButton('Start timer ' + str(linerow), self))
+        self.btnstart[linerow].clicked.connect(self.startcounter)
+        self.layout.addWidget(self.btnstart[-1], linerow + 1, self.column7)
+
+        self.layout.addWidget(self.LineAzienda[-1], linerow + 1, self.column1)
+        self.layout.addWidget(self.LineCliente[-1], linerow + 1, self.column2)
+        self.layout.addWidget(self.LineNomeScheda[-1], linerow + 1, self.column3)
+        self.layout.addWidget(self.LineOREp[-1], linerow + 1, self.column4)
+        self.layout.addWidget(self.LinePreventivo[-1], linerow + 1, self.column5)
+        self.layout.addWidget(self.LineOreLavorate[-1], linerow + 1, self.column6)
 
     def csv_handler(self, timestart, timestop):
         csvfile=str(self.pathprj)+"/dbfile/"+(self.listofworks[self.actualproject][self.projecthandler.columnscheda])+".csv"

@@ -101,7 +101,7 @@ class work_project:
         found=0
         listofworks=[]
         for element in self.listofwork:
-            if element[self.columnStato] == filter:
+            if element[self.columnStato] == filter or filter=="all":
                 listofworks.append(element)
             if element[self.columnscheda]==runningprj:
                 listofworks.append(element)
