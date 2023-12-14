@@ -94,16 +94,24 @@ class work_project:
         writeto = str(columnlist[column])+str(row)
         print(worksheet)
         worksheet[writeto] = value
-        writer.save(self.excelfile)
+        try:
+            writer.save(self.excelfile)
+        except:
+            ret=self.feedback("Error, file open or not found, retry?")
+            if ret:
+                writer.save(self.excelfile)
         writer.close()
 
     def updatelist(self, runningprj, filter):
         found=0
+        cnt=0
         listofworks=[]
         for element in self.listofwork:
             if element[self.columnStato] == filter or filter=="all":
                 listofworks.append(element)
-            if element[self.columnscheda]==runningprj:
-                listofworks.append(element)
-                found=len(listofworks)
+            else:
+                if element[self.columnscheda]==runningprj:
+                    listofworks.append(element)
+                    found=cnt
+            cnt=cnt+1
         return listofworks, found

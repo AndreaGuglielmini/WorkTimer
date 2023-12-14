@@ -200,8 +200,8 @@ class Window(QWidget):
             self.configini['RUN']['actualprojectruntime']=str(self.actualprojectruntime)
             self.configini['RUN']['actualproject']=str(self.actualproject)
             self.confighand.writevalue(self.configini)
-            self.updateprj()
-            self.updateGUI()
+            self.updatelist()
+            self.updatefilter()
 
     def startcounter(self):
         sender = self.sender()
@@ -244,9 +244,7 @@ class Window(QWidget):
 
     def updateprj(self):
         self.projecthandler.read_excel(self.sheet)
-        self.projecthandler.loadlistwork()
-        self.listofworks = self.projecthandler.listofwork
-        print(self.listofworks)
+        self.updatelist()
 
         self.updateGUI()
 
@@ -259,6 +257,22 @@ class Window(QWidget):
         exit()
 
     def updateGUI(self):
+        for index in range(0, self.numerorighe):
+            if index<len(self.listofworks):
+                self.LineAzienda[index].setText(self.listofworks[index][self.projecthandler.columnazienda])
+                self.LineCliente[index].setText(self.listofworks[index][self.projecthandler.columncliente])
+                self.LineNomeScheda[index].setText(self.listofworks[index][self.projecthandler.columnscheda])
+                self.LineOREp[index].setText(str(self.listofworks[index][self.projecthandler.columnOrePrev]))
+                self.LinePreventivo[index].setText(str(self.listofworks[index][self.projecthandler.columnPreventivo]))
+                self.LineOreLavorate[index].setText(str(self.listofworks[index][self.projecthandler.columnOreLavorate]))
+            else:
+                self.LineAzienda[index].setText("")
+                self.LineCliente[index].setText("")
+                self.LineNomeScheda[index].setText("")
+                self.LineOREp[index].setText("")
+                self.LinePreventivo[index].setText("")
+                self.LineOreLavorate[index].setText("")
+
         if self.isprojectrunning:
             self.LasRunProject.setText(self.actualprojectruntime)
             self.LasRunProject.setStyleSheet("border: 1px solid grey;background-color: yellow ")
@@ -276,22 +290,6 @@ class Window(QWidget):
             self.RunningProject.setStyleSheet("border: 1px solid grey;background-color: green ")
             self.ElapsedTimeProject.setText("--")
             self.ElapsedTimeProject.setStyleSheet("border: 1px solid grey;background-color: green ")
-
-        for index in range(0, self.numerorighe):
-            if index<len(self.listofworks):
-                self.LineAzienda[index].setText(self.listofworks[index][self.projecthandler.columnazienda])
-                self.LineCliente[index].setText(self.listofworks[index][self.projecthandler.columncliente])
-                self.LineNomeScheda[index].setText(self.listofworks[index][self.projecthandler.columnscheda])
-                self.LineOREp[index].setText(str(self.listofworks[index][self.projecthandler.columnOrePrev]))
-                self.LinePreventivo[index].setText(str(self.listofworks[index][self.projecthandler.columnPreventivo]))
-                self.LineOreLavorate[index].setText(str(self.listofworks[index][self.projecthandler.columnOreLavorate]))
-            else:
-                self.LineAzienda[index].setText("")
-                self.LineCliente[index].setText("")
-                self.LineNomeScheda[index].setText("")
-                self.LineOREp[index].setText("")
-                self.LinePreventivo[index].setText("")
-                self.LineOreLavorate[index].setText("")
 
 
     def increaserow(self,linerow):
