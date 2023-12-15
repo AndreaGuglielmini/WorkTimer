@@ -1,16 +1,19 @@
 # TBD Minutes are displayed without 0
 # TBD review prj update
-# TBD filter project based on status
-# TBD config ini configurable with interface
+# TBD config ini configurable with interface (insert settings button
 # TBD Force edit before update timer
 # TBD lost filters on excel file after update
 # TBD handle errors when is project running and are added some lines in excel
+# TBD Column name in table
+# TBD better graphics!!
+# TBD Verify round function on timestep and how to update the timer or force it
+# TBD tasto di note sul progetto?
 
 import datetime
 from datetime import timedelta, datetime
 
 from dialogs import *
-
+import math
 
 class Window(QWidget):
 
@@ -135,7 +138,7 @@ class Window(QWidget):
         self.layout.addWidget(self.ElapsedTimeProject, menurow, self.column4)
 
         self.FilterBtn = QCheckBox()
-        self.FilterBtn.setText("Active Filter")
+        self.FilterBtn.setText("Enable Filter")
         self.FilterBtn.setEnabled(True)
         self.FilterBtn.setChecked(True)
         self.FilterBtn.stateChanged.connect(self.updatefilter)
@@ -149,13 +152,14 @@ class Window(QWidget):
             self.updatelist(True)
         else:
             self.updatelist(False)
-        self.updateGUI()       #cabled value, TBD
+        self.updateGUI()
 
     def updatelist(self, usefilter=True):
         if usefilter:
             filter=self.filterprj
         else:
             filter="all"
+        self.projecthandler.loadlistwork()
         self.listofworks, prjrun=self.projecthandler.updatelist(self.actualprojectname, filter)
         if prjrun>0:
             self.actualproject=prjrun
@@ -181,9 +185,10 @@ class Window(QWidget):
             self.actualprojectruntime=datetime.strptime(self.configini['RUN']['actualprojectruntime'],'%y/%m/%d, %H:%M:%S')
             self.actualproject=int(self.configini['RUN']['actualproject'])
             seconds = (end - self.actualprojectruntime).total_seconds()
-            timeelapsed=round(seconds/60/self.step,0)*0.25
+            #timeelapsed=round(seconds/60/self.step,0)*0.25   #old round up
+            timeelapsed=(math.ceil(seconds/60/self.step))*0.25
             try:
-                actualvalue=int(self.listofworks[self.actualproject][self.projecthandler.columnOreLavorate])
+                actualvalue=float(self.listofworks[self.actualproject][self.projecthandler.columnOreLavorate])
             except:
                 actualvalue=0
             if actualvalue>0:
@@ -196,11 +201,13 @@ class Window(QWidget):
             self.isprojectrunning = False
             self.actualprojectruntime = 0
             self.actualproject=''
+            self.actualprojectname=''
             self.configini['RUN']['isprojectrunning']=str(self.isprojectrunning)
             self.configini['RUN']['actualprojectruntime']=str(self.actualprojectruntime)
             self.configini['RUN']['actualproject']=str(self.actualproject)
+            self.configini['RUN']['actualprojectname']=str(self.actualprojectname)
             self.confighand.writevalue(self.configini)
-            self.updatelist()
+            self.projecthandler.read_excel(self.sheet)
             self.updatefilter()
 
     def startcounter(self):
@@ -238,7 +245,7 @@ class Window(QWidget):
             self.project=filename[0]
             self.configini['PRJ']['acutalproject']=filename[0]
             self.confighand.writevalue(self.configini)
-
+            self.updateprj()
         else:
             return None
 
