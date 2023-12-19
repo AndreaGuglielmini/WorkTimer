@@ -1,13 +1,11 @@
-# TBD Minutes are displayed without 0
-# TBD review prj update
-# TBD config ini configurable with interface (insert settings button
-# TBD Force edit before update timer
-# TBD lost filters on excel file after update
-# TBD handle errors when is project running and are added some lines in excel
-# TBD Column name in table
-# TBD better graphics!!
-# TBD Verify round function on timestep and how to update the timer or force it
-# TBD tasto di note sul progetto?
+#===============================================================================================================
+# Author:       Guglielmini Andrea
+# Date:         19/12/2023
+# Application:  WorKTimer GUI
+# Version:      See WorkTimer.py
+#===============================================================================================================
+
+# TBD tasto di note sul progetto? --> not useful, maybe note column?
 
 import datetime
 from datetime import timedelta, datetime
@@ -26,15 +24,33 @@ class Window(QWidget):
         self.feedback=feedback
 
         #Read data from config ini
-        self.confighand=confighand
-        self.configini = confighand.configreadout()
-        self.sheet=self.configini['PRJ']['sheet']
-        self.skiprow = int(self.configini['PRJ']['skiprow'])
-        self.step = int(self.configini['PRJ']['stepminutes'])
-        self.filterprj=str(self.configini['PRJ']['filterprojectby'])
+        try:
+            self.confighand=confighand
+            self.configini = confighand.configreadout()
+            self.sheet=self.configini['PRJ']['sheet']
+            self.skiprow = int(self.configini['PRJ']['skiprow'])
+            self.step = int(self.configini['PRJ']['stepminutes'])
+            self.filterprj=str(self.configini['PRJ']['filterprojectby'])
+            self.columnnamelist=[]
+            self.columnnamelist.append(str(self.configini['PRJ']['columncustomerprj']))
+            self.columnnamelist.append(str(self.configini['PRJ']['columncustomer']))
+            self.columnnamelist.append(str(self.configini['PRJ']['columnboard']))
+            self.columnnamelist.append(str(self.configini['PRJ']['columnprevhour']))
+            self.columnnamelist.append(str(self.configini['PRJ']['columnUnitCost']))
+            self.columnnamelist.append(str(self.configini['PRJ']['columnCost']))
+            self.columnnamelist.append(str(self.configini['PRJ']['columnCostNoTax']))
+            self.columnnamelist.append(str(self.configini['PRJ']['columnEffectiveHour']))
+            self.columnnamelist.append(str(self.configini['PRJ']['columnStatus']))
+            self.isprojectrunning = self.configini.getboolean('RUN', 'isprojectrunning')
+        except Exception as re:
+            ret=self.feedback("Configuration file error\n Run configurator? \n Error: "+ str(re))
+            if ret:
+                self.settings(True)
+            else:
+                sys.exit()
 
 
-        self.isprojectrunning = self.configini.getboolean('RUN','isprojectrunning')
+
         if self.isprojectrunning:
             self.actualprojectruntime = self.configini['RUN']['actualprojectruntime']
             self.actualproject = int(self.configini['RUN']['actualproject'])
@@ -46,12 +62,26 @@ class Window(QWidget):
             self.isprojectrunning=False
 
 
+
         from DB_lib import work_project
+        ret=True
         if project != "":
-            self.projecthandler=work_project(project,feedback, self.sheet,self.skiprow)
+            self.projecthandler=work_project(project,feedback, self.sheet,self.columnnamelist,self.skiprow)
         else:
             self.openprj()
-            self.projecthandler = work_project(self.project, feedback, self.sheet,self.skiprow)
+            self.projecthandler = work_project(self.project, feedback, self.sheet, self.columnnamelist, self.skiprow)
+        if self.projecthandler.ret is None:
+            while ret==True:
+                ret=self.feedback("Error loading. Reconfigure?")
+                if ret:
+                    self.settings(True)
+                    self.projecthandler = work_project(project, feedback, self.sheet, self.columnnamelist, self.skiprow)
+                    if self.projecthandler.ret is not None:
+                        ret=False
+                else:
+                    sys.exit()
+        else:
+            self.HeadersColumn= self.projecthandler.ret
         self.updatelist()
 
         import os
@@ -86,15 +116,27 @@ class Window(QWidget):
         self.SavePRJbtn = QPushButton('Save Prj', self)
         self.SavePRJbtn.clicked.connect(self.saveprj)
         self.layout.addWidget(self.SavePRJbtn, menurow, self.column3)
+        self.SavePRJbtn.setEnabled(False)       # Not implemented yet --> how can be useful?
+
+        self.EditTimebtn = QPushButton('Modify Start Time', self)
+        self.EditTimebtn.clicked.connect(self.editstarttime)
+        self.layout.addWidget(self.EditTimebtn, menurow, self.column4)
+
+        self.Settingsbtn = QPushButton('Settings', self)
+        self.Settingsbtn.clicked.connect(self.settings)
+        self.layout.addWidget(self.Settingsbtn, menurow, self.column6)
 
         self.exittoolbtn = QPushButton('Exit tool', self)
         self.exittoolbtn.clicked.connect(self.exittool)
-        self.layout.addWidget(self.exittoolbtn, menurow, self.column3)
+        self.layout.addWidget(self.exittoolbtn, menurow, self.column7)
 
         self.numerorighe = 10
         ### ROW 2 to maxrow ###
         menurow = menurow+1
         self.maxrow = menurow+self.numerorighe
+
+        # Init of graphics lists
+        self.LineHeaders = []
         self.LineAzienda = []
         self.LineCliente = []
         self.LineNomeScheda = []
@@ -102,16 +144,27 @@ class Window(QWidget):
         self.LinePreventivo = []
         self.LineOreLavorate = []
         self.btnstart=[]
+        self.LineStatus=[]
+
         self.listofelements=[]
 
         linerow=0
-        if len(self.projecthandler.listofwork) > self.numerorighe:
-            self.items=self.maxrow       #TBD pulsanti di pagina
-        else:
-            self.items=len(self.projecthandler.listofwork)+1
+        self.multipage=False
+        self.actualpage=0
+        #if len(self.projecthandler.listofwork) > self.numerorighe:
+        #    self.items=self.maxrow
+        #else:
+        #    self.items=len(self.projecthandler.listofwork)+1
 
-        for index in range(menurow,self.maxrow):
-            self.increaserow(linerow)
+        for item in range(0,len(self.HeadersColumn)):
+            self.LineHeaders.append(QLineEdit())
+            self.LineHeaders[item].setText(self.HeadersColumn[item])
+            self.LineHeaders[item].setStyleSheet("color: white;font: bold 16px; border: 1px solid black;background-color:  gray ")
+            self.LineHeaders[item].setEnabled(False)
+            self.layout.addWidget(self.LineHeaders[item], menurow, item)
+        menurow = menurow + 1
+        for index in range(menurow,menurow+self.numerorighe):
+            self.increaserow(linerow, menurow+linerow)
             linerow = linerow + 1
 
         menurow = menurow + linerow
@@ -145,6 +198,18 @@ class Window(QWidget):
         self.layout.addWidget(self.FilterBtn, menurow, self.column5)
 
 
+        self.PrevPagebtn = QPushButton('<-- Page', self)
+        self.PrevPagebtn.clicked.connect(self.ChangePage)
+        self.layout.addWidget(self.PrevPagebtn, menurow, self.column6)
+
+        self.NextPagebtn = QPushButton('Page -->', self)
+        self.NextPagebtn.clicked.connect(self.ChangePage)
+        self.layout.addWidget(self.NextPagebtn, menurow, self.column7)
+
+        self.PageText  = QLabel(" / ", self)
+        self.PageText.setStyleSheet("border: 0px solid black")
+        self.layout.addWidget(self.PageText, menurow, self.column8)
+
         self.updateGUI()
 
     def updatefilter(self):
@@ -152,6 +217,7 @@ class Window(QWidget):
             self.updatelist(True)
         else:
             self.updatelist(False)
+        self.actualpage=0       # always restart drawing from first page
         self.updateGUI()
 
     def updatelist(self, usefilter=True):
@@ -188,7 +254,7 @@ class Window(QWidget):
             #timeelapsed=round(seconds/60/self.step,0)*0.25   #old round up
             timeelapsed=(math.ceil(seconds/60/self.step))*0.25
             try:
-                actualvalue=float(self.listofworks[self.actualproject][self.projecthandler.columnOreLavorate])
+                actualvalue=float(self.listofworks[self.actualproject][self.projecthandler.columnEffectiveHour])
             except:
                 actualvalue=0
             if actualvalue>0:
@@ -196,7 +262,8 @@ class Window(QWidget):
             else:
                 updatevalue=timeelapsed
 
-            self.projecthandler.writevalue(updatevalue, self.actualproject+self.skiprow+2, self.projecthandler.columnOreLavorate, self.sheet)  # TBD skiprow + 2 is not best practice...
+
+            self.projecthandler.writevalue(updatevalue, self.actualproject+self.skiprow+2, self.projecthandler.columnEffectiveHour, self.sheet)  # TBD skiprow + 2 is not best practice...
             self.csv_handler(self.actualprojectruntime,end)
             self.isprojectrunning = False
             self.actualprojectruntime = 0
@@ -217,10 +284,10 @@ class Window(QWidget):
         if self.actualproject>=len(self.listofworks):
             print("Invalid project")
         else:
-            self.RunningProject.setText((self.listofworks[self.actualproject][self.projecthandler.columnscheda]))
+            self.RunningProject.setText((self.listofworks[self.actualproject][self.projecthandler.columnboard]))
             self.RunningProject.setStyleSheet("border: 1px solid grey;background-color: yellow ")
 
-            self.actualprojectname=((self.listofworks[self.actualproject][self.projecthandler.columnscheda]))
+            self.actualprojectname=((self.listofworks[self.actualproject][self.projecthandler.columnboard]))
 
             if not self.isprojectrunning:
                 self.isprojectrunning=True
@@ -245,7 +312,6 @@ class Window(QWidget):
             self.project=filename[0]
             self.configini['PRJ']['acutalproject']=filename[0]
             self.confighand.writevalue(self.configini)
-            self.updateprj()
         else:
             return None
 
@@ -264,14 +330,23 @@ class Window(QWidget):
         exit()
 
     def updateGUI(self):
+        if len(self.listofworks)>self.numerorighe:
+            self.PrevPagebtn.setEnabled(True)
+            self.NextPagebtn.setEnabled(True)
+        else:
+            self.PrevPagebtn.setEnabled(False)
+            self.NextPagebtn.setEnabled(False)
+        self.PageText.setText("Page: "+str(self.actualpage+1) + " / " + str(math.ceil(len(self.listofworks) / self.numerorighe)))
         for index in range(0, self.numerorighe):
-            if index<len(self.listofworks):
-                self.LineAzienda[index].setText(self.listofworks[index][self.projecthandler.columnazienda])
-                self.LineCliente[index].setText(self.listofworks[index][self.projecthandler.columncliente])
-                self.LineNomeScheda[index].setText(self.listofworks[index][self.projecthandler.columnscheda])
-                self.LineOREp[index].setText(str(self.listofworks[index][self.projecthandler.columnOrePrev]))
-                self.LinePreventivo[index].setText(str(self.listofworks[index][self.projecthandler.columnPreventivo]))
-                self.LineOreLavorate[index].setText(str(self.listofworks[index][self.projecthandler.columnOreLavorate]))
+            idxl=index + (self.numerorighe * self.actualpage)
+            if idxl<len(self.listofworks):
+                self.LineAzienda[index].setText(self.listofworks[idxl][self.projecthandler.columncustomerprj])
+                self.LineCliente[index].setText(str(self.listofworks[idxl][self.projecthandler.columncustomer]))
+                self.LineNomeScheda[index].setText(self.listofworks[idxl][self.projecthandler.columnboard])
+                self.LineOREp[index].setText(str(self.listofworks[idxl][self.projecthandler.columnprevhour]))
+                self.LinePreventivo[index].setText(str(self.listofworks[idxl][self.projecthandler.columnCost]))
+                self.LineOreLavorate[index].setText(str(self.listofworks[idxl][self.projecthandler.columnEffectiveHour]))
+                self.LineStatus[index].setText(str(self.listofworks[idxl][self.projecthandler.columnStatus]))
             else:
                 self.LineAzienda[index].setText("")
                 self.LineCliente[index].setText("")
@@ -279,11 +354,12 @@ class Window(QWidget):
                 self.LineOREp[index].setText("")
                 self.LinePreventivo[index].setText("")
                 self.LineOreLavorate[index].setText("")
+                self.LineStatus[index].setText("")
 
         if self.isprojectrunning:
             self.LasRunProject.setText(self.actualprojectruntime)
             self.LasRunProject.setStyleSheet("border: 1px solid grey;background-color: yellow ")
-            self.RunningProject.setText((self.listofworks[self.actualproject][self.projecthandler.columnscheda]))
+            self.RunningProject.setText((self.listofworks[self.actualproject][self.projecthandler.columnboard]))
             self.RunningProject.setStyleSheet("border: 1px solid grey;background-color: yellow ")
             time = datetime.now()
             elapsed=(time - datetime.strptime(self.actualprojectruntime,'%y/%m/%d, %H:%M:%S')).total_seconds()
@@ -299,61 +375,145 @@ class Window(QWidget):
             self.ElapsedTimeProject.setStyleSheet("border: 1px solid grey;background-color: green ")
 
 
-    def increaserow(self,linerow):
+    def increaserow(self,linerow, menurow):
         self.listofelements.append(linerow)
         self.LineAzienda.append(QLineEdit())
         self.LineAzienda[linerow].setPlaceholderText("")
-        self.LineAzienda[linerow].setStyleSheet("border: 1px solid grey;")
+        self.LineAzienda[linerow].setStyleSheet("color: black;border: 1px solid gray;")
         self.LineAzienda[linerow].setEnabled(False)
 
         self.LineCliente.append(QLineEdit())
         self.LineCliente[linerow].setPlaceholderText("")
-        self.LineCliente[linerow].setStyleSheet("border: 1px solid grey;")
+        self.LineCliente[linerow].setStyleSheet("color: black;border: 1px solid gray;")
         self.LineCliente[linerow].setEnabled(False)
 
         self.LineNomeScheda.append(QLineEdit())
         self.LineNomeScheda[linerow].setPlaceholderText("")
-        self.LineNomeScheda[linerow].setStyleSheet("border: 1px solid grey;")
+        self.LineNomeScheda[linerow].setStyleSheet("color: black;border: 1px solid gray;")
         self.LineNomeScheda[linerow].setEnabled(False)
 
         self.LineOREp.append(QLineEdit())
         self.LineOREp[linerow].setPlaceholderText("")
-        self.LineOREp[linerow].setStyleSheet("border: 1px solid grey;")
+        self.LineOREp[linerow].setStyleSheet("color: black;border: 1px solid gray;")
         self.LineOREp[linerow].setEnabled(False)
 
         self.LinePreventivo.append(QLineEdit())
         self.LinePreventivo[linerow].setPlaceholderText("")
-        self.LinePreventivo[linerow].setStyleSheet("border: 1px solid grey;")
+        self.LinePreventivo[linerow].setStyleSheet("color: black;border: 1px solid gray;")
         self.LinePreventivo[linerow].setEnabled(False)
 
         self.LineOreLavorate.append(QLineEdit())
         self.LineOreLavorate[linerow].setPlaceholderText("")
-        self.LineOreLavorate[linerow].setStyleSheet("border: 1px solid grey;")
+        self.LineOreLavorate[linerow].setStyleSheet("color: black;border: 1px solid gray;")
         self.LineOreLavorate[linerow].setEnabled(False)
+
+        self.LineStatus.append(QLineEdit())
+        self.LineStatus[linerow].setPlaceholderText("")
+        self.LineStatus[linerow].setStyleSheet("color: black;border: 1px solid gray;")
+        self.LineStatus[linerow].setEnabled(False)
 
         self.btnstart.append(QPushButton('Start timer ' + str(linerow), self))
         self.btnstart[linerow].clicked.connect(self.startcounter)
-        self.layout.addWidget(self.btnstart[-1], linerow + 1, self.column7)
+        self.layout.addWidget(self.btnstart[-1], menurow, self.column8)
 
-        self.layout.addWidget(self.LineAzienda[-1], linerow + 1, self.column1)
-        self.layout.addWidget(self.LineCliente[-1], linerow + 1, self.column2)
-        self.layout.addWidget(self.LineNomeScheda[-1], linerow + 1, self.column3)
-        self.layout.addWidget(self.LineOREp[-1], linerow + 1, self.column4)
-        self.layout.addWidget(self.LinePreventivo[-1], linerow + 1, self.column5)
-        self.layout.addWidget(self.LineOreLavorate[-1], linerow + 1, self.column6)
+        self.layout.addWidget(self.LineAzienda[-1], menurow, self.column1)
+        self.layout.addWidget(self.LineCliente[-1], menurow, self.column2)
+        self.layout.addWidget(self.LineNomeScheda[-1], menurow, self.column3)
+        self.layout.addWidget(self.LineOREp[-1], menurow, self.column4)
+        self.layout.addWidget(self.LinePreventivo[-1], menurow, self.column5)
+        self.layout.addWidget(self.LineOreLavorate[-1], menurow, self.column6)
+        self.layout.addWidget(self.LineStatus[-1], menurow, self.column7)
+
+    def editstarttime(self):
+        from dialogs import fields
+        format = '%y/%m/%d, %H:%M:%S'
+        if self.isprojectrunning:
+            time=self.actualprojectruntime
+            listtime=[]
+            listtime.append(time)
+            listtime.append("")
+            modtime=fields(listtime)
+            modtime.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+            if modtime.exec_() == QtWidgets.QDialog.Accepted:
+                print(modtime.val)
+                modtime = modtime.val
+            try:
+                tchange=(datetime.strptime(modtime[1], format)-(datetime.strptime(self.actualprojectruntime, format)))
+                change=tchange.total_seconds()
+                print(change)
+                if change!=0:
+                    print(change)
+                    self.feedback("Modified time: "+str(-1*round(change/60,0))+" minutes", 'ok')
+                    self.actualprojectruntime=modtime[1]
+                    self.configini['RUN']['actualprojectruntime'] = str(self.actualprojectruntime)
+                    self.confighand.writevalue(self.configini)
+                    self.updateGUI()
+                else:
+                    self.feedback("No changes")
+            except Exception as re:
+                self.feedback("Invalid data")
+                print(re)
+        else:
+            self.feedback("Start a timer first!","ok")
 
     def csv_handler(self, timestart, timestop):
-        csvfile=str(self.pathprj)+"/dbfile/"+(self.listofworks[self.actualproject][self.projecthandler.columnscheda])+".csv"
+        csvfile=str(self.pathprj)+"/dbfile/"+(self.listofworks[self.actualproject][self.projecthandler.columnboard])+".csv"
         with open(csvfile,"a") as f:
-            sday=timestart.day
-            smonth=timestart.month
-            shour=timestart.hour
-            sminute=timestart.minute
-            sminute=round(sminute/self.step)
-            sthour=timestop.hour
-            stminute=timestop.minute
-            f.write(str(sday)+"/"+str(smonth)+";"+str(shour)+":"+str(sminute)+";"+str(sthour)+":"+str(stminute)+"\n")
+            sday=str(timestart.day).zfill(2)
+            smonth=str(timestart.month).zfill(2)
+            shour=str(timestart.hour).zfill(2)
+            sminute=str(timestart.minute).zfill(2)
+            #sminute=round(sminute/self.step)
+            stday=str(timestop.day).zfill(2)
+            stmonth=str(timestop.month).zfill(2)
+            sthour=str(timestop.hour).zfill(2)
+            stminute=str(timestop.minute).zfill(2)
+            f.write(sday+"/"+smonth+";"+shour+":"+sminute+";"+stday+"/"+stmonth+";"+sthour+":"+stminute+"\n")
         f.close()
 
+    def settings(self, reconfigure=False):
+        from dialogs import settings
 
+        self.configini = self.confighand.configreadout()
+        setup=settings(self.configini)
+        setup.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+        if setup.exec_() == QtWidgets.QDialog.Accepted:
+            self.configini = setup.configini
+            if self.configini is None:
+                ret=self.feedback("Error on .ini file occurred, please re-install ini file and reload. Exit?")
+                if ret:
+                    sys.exit()
 
+        try:
+            self.sheet = self.configini['PRJ']['sheet']
+            self.skiprow = int(self.configini['PRJ']['skiprow'])
+            self.step = int(self.configini['PRJ']['stepminutes'])
+            self.filterprj=str(self.configini['PRJ']['filterprojectby'])
+            self.columnnamelist=[]
+            self.columnnamelist.append(str(self.configini['PRJ']['columncustomerprj']))
+            self.columnnamelist.append(str(self.configini['PRJ']['columncustomer']))
+            self.columnnamelist.append(str(self.configini['PRJ']['columnboard']))
+            self.columnnamelist.append(str(self.configini['PRJ']['columnprevhour']))
+            self.columnnamelist.append(str(self.configini['PRJ']['columnUnitCost']))
+            self.columnnamelist.append(str(self.configini['PRJ']['columnCost']))
+            self.columnnamelist.append(str(self.configini['PRJ']['columnCostNoTax']))
+            self.columnnamelist.append(str(self.configini['PRJ']['columnEffectiveHour']))
+            self.columnnamelist.append(str(self.configini['PRJ']['columnStatus']))
+            self.confighand.writevalue(self.configini)
+        except Exception as re:
+            self.feedback("Error loading ini, aborting. ", re)
+            sys.exit()
+        if not reconfigure:
+            self.updateprj()
+
+    def ChangePage(self):
+        sender = self.sender()
+        print(sender.text() + ' was pressed')
+        if sender.text()=='Page -->' and ((self.actualpage+1)*self.numerorighe<len(self.listofworks)):
+            self.actualpage=self.actualpage+1
+        if sender.text() == '<-- Page':
+            if self.actualpage>0:
+                self.actualpage=self.actualpage-1
+
+        print(self.actualpage)
+        self.updateGUI()

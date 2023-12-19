@@ -3,9 +3,9 @@
 # Date:         22/11/2023
 # Application:  DB lib
 # Version:      1_0 - created
+# Use template excel file. If some data validation is added, follow this guide https://www.reddit.com/r/learnpython/comments/mfy9qa/openpyxl_deleting_data_validation/
 #===============================================================================================================
 
-import os               # cwd request
 import pandas as pd
 from PyQt5.QtWidgets import QProgressBar, QSplashScreen
 from PyQt5.QtGui import QPixmap
@@ -14,22 +14,25 @@ from PyQt5.QtCore import  Qt
 import openpyxl
 
 class work_project:
-    def __init__(self, excelfile,feedback, sheet, skip=0):
+    def __init__(self, excelfile,feedback, sheet,columnnamelist, skip=0):
 
 
         self.feedback=feedback
         self.excelfile=excelfile
         self.skip=skip
-        ## EXCEL FILE STRUCTURE, import from row 5##
-        ## AZIENDA | CLIENTE | Nome Scheda | Ore Preventivo | Prezzo Unitario | Preventivo | Preventivo no rivalsa | Ore Lavorate | Stato
+        ## EXCEL FILE STRUCTURE configurable with config.ini
 
-        self.setcolumn()
+
 
         self.listofwork=[]
 
         # read Excel file
         self.read_excel(sheet)
+        self.ret=self.setcolumn(columnnamelist)
+        if self.ret is None:
+            return None
         self.loadlistwork()
+
 
     def read_excel(self, sheet):
 
@@ -73,16 +76,44 @@ class work_project:
 
         print("cat_list_raw: ",self.cat_list_raw)
 
-    def setcolumn(self):
-        self.columnazienda=0
-        self.columncliente=1
-        self.columnscheda=2
-        self.columnOrePrev=3
-        self.columnPrezzoUnit=4
-        self.columnPreventivo=5
-        self.columnPreventivoNoRiv=6
-        self.columnOreLavorate=7
-        self.columnStato = 8
+    def setcolumn(self,columnnamelist):
+        usedcolumn=[]
+        for item in columnnamelist:
+            for idx in range(0,len(self.cat_header)):
+                if item == self.cat_header[idx]:
+                    if item==columnnamelist[0]:
+                        self.columncustomerprj=idx
+                        usedcolumn.append(item)
+                    if item==columnnamelist[1]:
+                        self.columncustomer=idx
+                        usedcolumn.append(item)
+                    if item==columnnamelist[2]:
+                        self.columnboard=idx
+                        usedcolumn.append(item)
+                    if item==columnnamelist[3]:
+                        self.columnprevhour=idx
+                        usedcolumn.append(item)
+                    if item==columnnamelist[4]:
+                        self.columnUnitCost=idx
+                        usedcolumn.append(item)
+                    if item==columnnamelist[5]:
+                        self.columnCost=idx
+                        usedcolumn.append(item)
+                    if item==columnnamelist[6]:
+                        self.columnCostNoTax=idx
+                    if item==columnnamelist[7]:
+                        self.columnEffectiveHour=idx
+                        usedcolumn.append(item)
+                    if item==columnnamelist[8]:
+                        self.columnStatus=idx
+                        usedcolumn.append(item)
+        # The usedcolumn.append(item) is a workaround for handle the list of columns headers (TBD)
+        print(columnnamelist)
+        try:
+            print(self.columncustomerprj,self.columncustomer,self.columnboard,self.columnStatus)
+            return usedcolumn
+        except:
+            return None
 
     def writevalue(self, value, row, column,sheet):
         #book=load_workbook(self.excelfile)
@@ -107,10 +138,10 @@ class work_project:
         cnt=0
         listofworks=[]
         for element in self.listofwork:
-            if element[self.columnStato] == filter or filter=="all":
+            if element[self.columnStatus] == filter or filter=="all":
                 listofworks.append(element)
             else:
-                if element[self.columnscheda]==runningprj:
+                if element[self.columnboard]==runningprj:
                     listofworks.append(element)
                     found=cnt
             cnt=cnt+1

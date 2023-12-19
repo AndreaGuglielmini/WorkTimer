@@ -1,4 +1,10 @@
-import os
+#===============================================================================================================
+# Author:       Guglielmini Andrea
+# Date:         19/12/2023
+# Application:  WorKTimer Application
+# Version:      See version
+#===============================================================================================================
+
 import sys
 version="0.9.0"
 myappid = 'AndreaGuglielmini.WorkTimer.GUI'+version # arbitrary string
@@ -47,8 +53,10 @@ if __name__ == "__main__":
         config=None
 
     if config is not None:
-        project=config['PRJ']['acutalproject']
-        db_csv=config['PRJ']['actualdatabase']
+        try:
+            project=config['PRJ']['acutalproject']
+        except:
+            project=""
     else:
         pass #TBD select project file
 
