@@ -25,31 +25,41 @@ class Window(QWidget):
 
         #Read data from config ini
         try:
-            self.confighand=confighand
+            self.confighand = confighand
             self.configini = confighand.configreadout()
-            self.sheet=self.configini['PRJ']['sheet']
-            self.skiprow = int(self.configini['PRJ']['skiprow'])
-            self.step = int(self.configini['PRJ']['stepminutes'])
-            self.filterprj=str(self.configini['PRJ']['filterprojectby'])
-            self.columnnamelist=[]
-            self.columnnamelist.append(str(self.configini['PRJ']['columncustomerprj']))
-            self.columnnamelist.append(str(self.configini['PRJ']['columncustomer']))
-            self.columnnamelist.append(str(self.configini['PRJ']['columnboard']))
-            self.columnnamelist.append(str(self.configini['PRJ']['columnprevhour']))
-            self.columnnamelist.append(str(self.configini['PRJ']['columnUnitCost']))
-            self.columnnamelist.append(str(self.configini['PRJ']['columnCost']))
-            self.columnnamelist.append(str(self.configini['PRJ']['columnCostNoTax']))
-            self.columnnamelist.append(str(self.configini['PRJ']['columnEffectiveHour']))
-            self.columnnamelist.append(str(self.configini['PRJ']['columnStatus']))
-            self.isprojectrunning = self.configini.getboolean('RUN', 'isprojectrunning')
-        except Exception as re:
-            ret=self.feedback("Configuration file error\n Run configurator? \n Error: "+ str(re))
-            if ret:
+            load=self.loadini()
+        except:
+            load=False
+        if not load:
                 self.settings(True)
-            else:
+
+        from DB_lib import work_project
+        ret=True
+        if project != "":
+            self.projecthandler=work_project(project,feedback, self.sheet,self.columnnamelist,self.skiprow)
+        else:
+            self.openprj()
+            self.projecthandler = work_project(self.project, feedback, self.sheet, self.columnnamelist, self.skiprow)
+            load = self.loadini()
+            if not load:
+                self.feedback("Error in config file, aborting", "ok")
                 sys.exit()
-
-
+        if self.projecthandler.ret is None:
+            while ret==True:
+                ret=self.feedback("Error loading. Reconfigure?")
+                if ret:
+                    self.settings(True)
+                    self.projecthandler = work_project(project, feedback, self.sheet, self.columnnamelist, self.skiprow)
+                    if self.projecthandler.ret is not None:
+                        ret=False
+                    load = self.loadini()
+                    if not load:
+                        self.feedback("Error in config file, aborting","ok")
+                        sys.exit()
+                else:
+                    sys.exit()
+        else:
+            self.HeadersColumn= self.projecthandler.ret
 
         if self.isprojectrunning:
             self.actualprojectruntime = self.configini['RUN']['actualprojectruntime']
@@ -61,34 +71,11 @@ class Window(QWidget):
             self.actualprojectruntime=0
             self.isprojectrunning=False
 
-
-
-        from DB_lib import work_project
-        ret=True
-        if project != "":
-            self.projecthandler=work_project(project,feedback, self.sheet,self.columnnamelist,self.skiprow)
-        else:
-            self.openprj()
-            self.projecthandler = work_project(self.project, feedback, self.sheet, self.columnnamelist, self.skiprow)
-        if self.projecthandler.ret is None:
-            while ret==True:
-                ret=self.feedback("Error loading. Reconfigure?")
-                if ret:
-                    self.settings(True)
-                    self.projecthandler = work_project(project, feedback, self.sheet, self.columnnamelist, self.skiprow)
-                    if self.projecthandler.ret is not None:
-                        ret=False
-                else:
-                    sys.exit()
-        else:
-            self.HeadersColumn= self.projecthandler.ret
         self.updatelist()
 
         import os
         self.nameprj = os.path.basename(project)
         self.pathprj=os.path.split(project)[0]
-
-        self.setWindowTitle("Work Timer "+ str(version)+"  - PROJECT "+self.nameprj)
 
         menurow=0
         self.column1=0
@@ -330,6 +317,7 @@ class Window(QWidget):
         exit()
 
     def updateGUI(self):
+        self.setWindowTitle("Work Timer "+ str(self.version)+"  - PROJECT "+self.nameprj)
         if len(self.listofworks)>self.numerorighe:
             self.PrevPagebtn.setEnabled(True)
             self.NextPagebtn.setEnabled(True)
@@ -517,3 +505,25 @@ class Window(QWidget):
 
         print(self.actualpage)
         self.updateGUI()
+
+    def loadini(self):
+        try:
+            self.sheet = self.configini['PRJ']['sheet']
+            self.skiprow = int(self.configini['PRJ']['skiprow'])
+            self.step = int(self.configini['PRJ']['stepminutes'])
+            self.filterprj = str(self.configini['PRJ']['filterprojectby'])
+            self.columnnamelist = []
+            self.columnnamelist.append(str(self.configini['PRJ']['columncustomerprj']))
+            self.columnnamelist.append(str(self.configini['PRJ']['columncustomer']))
+            self.columnnamelist.append(str(self.configini['PRJ']['columnboard']))
+            self.columnnamelist.append(str(self.configini['PRJ']['columnprevhour']))
+            self.columnnamelist.append(str(self.configini['PRJ']['columnUnitCost']))
+            self.columnnamelist.append(str(self.configini['PRJ']['columnCost']))
+            self.columnnamelist.append(str(self.configini['PRJ']['columnCostNoTax']))
+            self.columnnamelist.append(str(self.configini['PRJ']['columnEffectiveHour']))
+            self.columnnamelist.append(str(self.configini['PRJ']['columnStatus']))
+            self.isprojectrunning = self.configini.getboolean('RUN', 'isprojectrunning')
+            return True
+        except Exception as re:
+            print(re)
+            return False
