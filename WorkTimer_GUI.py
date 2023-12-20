@@ -6,6 +6,7 @@
 #===============================================================================================================
 
 # TBD tasto di note sul progetto? --> not useful, maybe note column?
+# TBD bug on update column "prezzo unitario"
 
 import datetime
 from datetime import timedelta, datetime
