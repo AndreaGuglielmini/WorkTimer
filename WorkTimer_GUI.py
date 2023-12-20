@@ -250,8 +250,8 @@ class Window(QWidget):
             self.actualprojectruntime=datetime.strptime(self.configini['RUN']['actualprojectruntime'],'%y/%m/%d, %H:%M:%S')
             self.actualproject=int(self.configini['RUN']['actualproject'])
             seconds = (end - self.actualprojectruntime).total_seconds()
-            #timeelapsed=round(seconds/60/self.step,0)*0.25   #old round up
-            timeelapsed=(math.ceil(seconds/60/self.step))*0.25
+            timeelapsed=round(seconds/60/self.step,0)*0.25   #round up
+            #timeelapsed=(math.ceil(seconds/60/self.step))*0.25     #math.ceil seems to be aggressive with times!
             if ok:
                 self.feedback("Added time: "+str(timeelapsed),"ok")
             try:
