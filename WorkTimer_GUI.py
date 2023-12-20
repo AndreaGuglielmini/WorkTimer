@@ -6,13 +6,14 @@
 #===============================================================================================================
 
 # TBD tasto di note sul progetto? --> not useful, maybe note column?
-# TBD bug on update column "prezzo unitario"
 
 import datetime
 from datetime import timedelta, datetime
 
 from dialogs import *
 import math
+
+import os
 
 class Window(QWidget):
 
@@ -74,9 +75,12 @@ class Window(QWidget):
 
         self.updatelist()
 
-        import os
+
         self.nameprj = os.path.basename(project)
         self.pathprj=os.path.split(project)[0]
+
+        self.format = '%y/%m/%d, %H:%M:%S'
+
 
         menurow=0
         self.column1=0
@@ -219,6 +223,7 @@ class Window(QWidget):
             self.actualproject=prjrun
 
     def stopcounter(self):
+        modifiers = QtWidgets.QApplication.keyboardModifiers()
         self.configini = self.confighand.configreadout()
         runningfromini=self.configini.getboolean('RUN','isprojectrunning')
         if self.isprojectrunning!=runningfromini:
@@ -233,7 +238,13 @@ class Window(QWidget):
 
         if self.isprojectrunning :
             end = datetime.now()
-
+            ok=False
+            if modifiers == QtCore.Qt.ShiftModifier:
+                text, ok = QInputDialog().getText(self, "QInputDialog().getText()",
+                                                  "Set manual time", QLineEdit.Normal,
+                                                  datetime.strftime(end, self.format))
+                if ok and text:
+                    end = datetime.strptime(text, self.format)
             #Always load from config.ini, because we can arrive from a closed app until running..
             self.isprojectrunning=self.configini.getboolean('RUN','isprojectrunning')
             self.actualprojectruntime=datetime.strptime(self.configini['RUN']['actualprojectruntime'],'%y/%m/%d, %H:%M:%S')
@@ -241,6 +252,8 @@ class Window(QWidget):
             seconds = (end - self.actualprojectruntime).total_seconds()
             #timeelapsed=round(seconds/60/self.step,0)*0.25   #old round up
             timeelapsed=(math.ceil(seconds/60/self.step))*0.25
+            if ok:
+                self.feedback("Added time: "+str(timeelapsed),"ok")
             try:
                 actualvalue=float(self.listofworks[self.actualproject][self.projecthandler.columnEffectiveHour])
             except:
@@ -415,7 +428,6 @@ class Window(QWidget):
 
     def editstarttime(self):
         from dialogs import fields
-        format = '%y/%m/%d, %H:%M:%S'
         if self.isprojectrunning:
             time=self.actualprojectruntime
             listtime=[]
@@ -427,7 +439,7 @@ class Window(QWidget):
                 print(modtime.val)
                 modtime = modtime.val
             try:
-                tchange=(datetime.strptime(modtime[1], format)-(datetime.strptime(self.actualprojectruntime, format)))
+                tchange=(datetime.strptime(modtime[1], self.format)-(datetime.strptime(self.actualprojectruntime, self.format)))
                 change=tchange.total_seconds()
                 print(change)
                 if change!=0:
@@ -447,6 +459,9 @@ class Window(QWidget):
 
     def csv_handler(self, timestart, timestop):
         csvfile=str(self.pathprj)+"/dbfile/"+(self.listofworks[self.actualproject][self.projecthandler.columnboard])+".csv"
+        statinfo = os.access(csvfile, mode=os.W_OK)
+        if not statinfo:
+            os.makedirs(os.path.dirname(csvfile), exist_ok=True)
         with open(csvfile,"a") as f:
             sday=str(timestart.day).zfill(2)
             smonth=str(timestart.month).zfill(2)

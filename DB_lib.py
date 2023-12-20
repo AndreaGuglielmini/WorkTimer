@@ -54,6 +54,7 @@ class work_project:
         progressBar.setValue(0)
         try:
             cat_dataframe = pd.read_excel(self.excelfile, sheet, skiprows=self.skip)
+            progressBar.setValue(100)
         except Exception as re:
             print(re)
             print("Requires openpyxl version 3.0.10 to work properly")
@@ -93,9 +94,9 @@ class work_project:
                     if item==columnnamelist[3]:
                         self.columnprevhour=idx
                         usedcolumn.append(item)
-                    if item==columnnamelist[4]:
-                        self.columnUnitCost=idx
-                        usedcolumn.append(item)
+                    #if item==columnnamelist[4]:
+                        #self.columnUnitCost=idx
+                        #usedcolumn.append(item)
                     if item==columnnamelist[5]:
                         self.columnCost=idx
                         usedcolumn.append(item)
