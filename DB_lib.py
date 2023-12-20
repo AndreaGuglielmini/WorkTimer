@@ -12,6 +12,7 @@ from PyQt5.QtGui import QPixmap
 from PyQt5 import QtCore
 from PyQt5.QtCore import  Qt
 import openpyxl
+import math
 
 class work_project:
     def __init__(self, excelfile,feedback, sheet,columnnamelist, skip=0):
@@ -140,7 +141,8 @@ class work_project:
         listofworks=[]
         for element in self.listofwork:
             if element[self.columnStatus] == filter or filter=="all":
-                listofworks.append(element)
+                if (str(element[self.columncustomerprj]))!='nan':
+                    listofworks.append(element)
             else:
                 if element[self.columnboard]==runningprj:
                     listofworks.append(element)

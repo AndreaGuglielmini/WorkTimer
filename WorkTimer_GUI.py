@@ -342,9 +342,9 @@ class Window(QWidget):
         for index in range(0, self.numerorighe):
             idxl=index + (self.numerorighe * self.actualpage)
             if idxl<len(self.listofworks):
-                self.LineAzienda[index].setText(self.listofworks[idxl][self.projecthandler.columncustomerprj])
+                self.LineAzienda[index].setText(str(self.listofworks[idxl][self.projecthandler.columncustomerprj]))
                 self.LineCliente[index].setText(str(self.listofworks[idxl][self.projecthandler.columncustomer]))
-                self.LineNomeScheda[index].setText(self.listofworks[idxl][self.projecthandler.columnboard])
+                self.LineNomeScheda[index].setText(str(self.listofworks[idxl][self.projecthandler.columnboard]))
                 self.LineOREp[index].setText(str(self.listofworks[idxl][self.projecthandler.columnprevhour]))
                 self.LinePreventivo[index].setText(str(self.listofworks[idxl][self.projecthandler.columnCost]))
                 self.LineOreLavorate[index].setText(str(self.listofworks[idxl][self.projecthandler.columnEffectiveHour]))
