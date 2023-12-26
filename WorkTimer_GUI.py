@@ -349,6 +349,9 @@ class Window(QWidget):
                 self.LinePreventivo[index].setText(str(self.listofworks[idxl][self.projecthandler.columnCost]))
                 self.LineOreLavorate[index].setText(str(self.listofworks[idxl][self.projecthandler.columnEffectiveHour]))
                 self.LineStatus[index].setText(str(self.listofworks[idxl][self.projecthandler.columnStatus]))
+                # TBD self.btnstart[index].setText("Start "+str(self.listofworks[idxl][self.projecthandler.columnboard]))
+                self.btnstart[index].setText("Start "+str(index))
+                self.btnstart[index].setEnabled(True)
             else:
                 self.LineAzienda[index].setText("")
                 self.LineCliente[index].setText("")
@@ -357,6 +360,8 @@ class Window(QWidget):
                 self.LinePreventivo[index].setText("")
                 self.LineOreLavorate[index].setText("")
                 self.LineStatus[index].setText("")
+                self.btnstart[index].setText("")
+                self.btnstart[index].setEnabled(False)
 
         if self.isprojectrunning:
             self.LasRunProject.setText(self.actualprojectruntime)
@@ -416,6 +421,8 @@ class Window(QWidget):
 
         self.btnstart.append(QPushButton('Start timer ' + str(linerow), self))
         self.btnstart[linerow].clicked.connect(self.startcounter)
+        self.btnstart[linerow].setMaximumWidth(100)
+        self.btnstart[linerow].setStyleSheet('text-align: left;')
         self.layout.addWidget(self.btnstart[-1], menurow, self.column8)
 
         self.layout.addWidget(self.LineAzienda[-1], menurow, self.column1)

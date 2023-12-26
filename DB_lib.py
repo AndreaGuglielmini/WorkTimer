@@ -12,7 +12,7 @@ from PyQt5.QtGui import QPixmap
 from PyQt5 import QtCore
 from PyQt5.QtCore import  Qt
 import openpyxl
-import math
+import xlwings as xl
 
 class work_project:
     def __init__(self, excelfile,feedback, sheet,columnnamelist, skip=0):
@@ -54,6 +54,10 @@ class work_project:
         splash.showMessage(self.excelfile, alignment=Qt.AlignBottom, color=Qt.black)
         progressBar.setValue(0)
         try:
+            app = xl.App(visible=False)         #workaround found at https://stackoverflow.com/questions/71789086/pandas-read-excel-with-formulas-and-get-values
+            book = app.books.open(self.excelfile)
+            book.save()
+            app.kill()
             cat_dataframe = pd.read_excel(self.excelfile, sheet, skiprows=self.skip)
             progressBar.setValue(100)
         except Exception as re:
@@ -112,7 +116,7 @@ class work_project:
         # The usedcolumn.append(item) is a workaround for handle the list of columns headers (TBD)
         print(columnnamelist)
         try:
-            print(self.columncustomerprj,self.columncustomer,self.columnboard,self.columnStatus)
+            print(self.columncustomerprj,self.columncustomer,self.columnboard,self.columnStatus, self.columnCost)
             return usedcolumn
         except:
             return None
