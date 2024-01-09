@@ -6,6 +6,7 @@
 #===============================================================================================================
 
 # TBD tasto di note sul progetto? --> not useful, maybe note column?
+# statistics button from csv data
 
 import datetime
 from datetime import timedelta, datetime
@@ -237,6 +238,7 @@ class Window(QWidget):
             return 0
 
         if self.isprojectrunning :
+            notes=""
             end = datetime.now()
             ok=False
             if modifiers == QtCore.Qt.ShiftModifier:
@@ -245,6 +247,12 @@ class Window(QWidget):
                                                   datetime.strftime(end, self.format))
                 if ok and text:
                     end = datetime.strptime(text, self.format)
+            if modifiers == QtCore.Qt.ControlModifier:
+                text1, ok1 = QInputDialog().getText(self, "QInputDialog().getText()",
+                                                  "Insert Notes", QLineEdit.Normal,
+                                                  "")
+                if ok1 and text1:
+                    notes = text1
             #Always load from config.ini, because we can arrive from a closed app until running..
             self.isprojectrunning=self.configini.getboolean('RUN','isprojectrunning')
             self.actualprojectruntime=datetime.strptime(self.configini['RUN']['actualprojectruntime'],'%y/%m/%d, %H:%M:%S')
@@ -265,7 +273,7 @@ class Window(QWidget):
 
 
             self.projecthandler.writevalue(updatevalue, self.actualproject+self.skiprow+2, self.projecthandler.columnEffectiveHour, self.sheet)  # TBD skiprow + 2 is not best practice...
-            self.csv_handler(self.actualprojectruntime,end)
+            self.csv_handler(self.actualprojectruntime,end,updatevalue,notes)
             self.isprojectrunning = False
             self.actualprojectruntime = 0
             self.actualproject=''
@@ -464,7 +472,7 @@ class Window(QWidget):
         else:
             self.feedback("Start a timer first!","ok")
 
-    def csv_handler(self, timestart, timestop):
+    def csv_handler(self, timestart, timestop, addedtime, notes=""):
         csvfile=str(self.pathprj)+"/dbfile/"+(self.listofworks[self.actualproject][self.projecthandler.columnboard])+".csv"
         statinfo = os.access(csvfile, mode=os.W_OK)
         if not statinfo:
@@ -479,7 +487,7 @@ class Window(QWidget):
             stmonth=str(timestop.month).zfill(2)
             sthour=str(timestop.hour).zfill(2)
             stminute=str(timestop.minute).zfill(2)
-            f.write(sday+"/"+smonth+";"+shour+":"+sminute+";"+stday+"/"+stmonth+";"+sthour+":"+stminute+"\n")
+            f.write(str(self.listofworks[self.actualproject][self.projecthandler.columnboard])+";"+sday+"/"+smonth+";"+shour+":"+sminute+";"+stday+"/"+stmonth+";"+sthour+":"+stminute+";"+str(notes)+"\n")
         f.close()
 
     def settings(self, reconfigure=False):
