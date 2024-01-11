@@ -4,14 +4,18 @@
 # Application:  WorKTimer GUI
 # Version:      See WorkTimer.py
 #===============================================================================================================
-
+from PyQt5 import QtWidgets, QtCore
 # TBD tasto di note sul progetto? --> not useful, maybe note column?
 # statistics button from csv data
-
+from PyQt5.QtWidgets import *
+from PyQt5.QtWidgets import QMessageBox,QFileDialog
 import datetime
 from datetime import timedelta, datetime
+import sys
 
-from dialogs import *
+from dialogs import settings
+from dialogs import statistics
+
 import math
 
 import os
@@ -19,12 +23,13 @@ import os
 class Window(QWidget):
 
 
-    def __init__(self, version, project, feedback,confighand):
+    def __init__(self, version, project, feedback,confighand,pandashow):
         QWidget.__init__(self)
         self.layout = QGridLayout()
         self.setLayout(self.layout)
         self.version = version
         self.feedback=feedback
+        self.pandashow=pandashow
 
         #Read data from config ini
         try:
@@ -114,6 +119,10 @@ class Window(QWidget):
         self.EditTimebtn = QPushButton('Modify Start Time', self)
         self.EditTimebtn.clicked.connect(self.editstarttime)
         self.layout.addWidget(self.EditTimebtn, menurow, self.column4)
+
+        self.Statsbtn = QPushButton('Statistics', self)
+        self.Statsbtn.clicked.connect(self.showstatistics)
+        self.layout.addWidget(self.Statsbtn, menurow, self.column5)
 
         self.Settingsbtn = QPushButton('Settings', self)
         self.Settingsbtn.clicked.connect(self.settings)
@@ -478,16 +487,18 @@ class Window(QWidget):
         if not statinfo:
             os.makedirs(os.path.dirname(csvfile), exist_ok=True)
         with open(csvfile,"a") as f:
+            syear = str(timestart.year).zfill(2)
             sday=str(timestart.day).zfill(2)
             smonth=str(timestart.month).zfill(2)
             shour=str(timestart.hour).zfill(2)
             sminute=str(timestart.minute).zfill(2)
             #sminute=round(sminute/self.step)
+            styear = str(timestop.year).zfill(2)
             stday=str(timestop.day).zfill(2)
             stmonth=str(timestop.month).zfill(2)
             sthour=str(timestop.hour).zfill(2)
             stminute=str(timestop.minute).zfill(2)
-            f.write(str(self.listofworks[self.actualproject][self.projecthandler.columnboard])+";"+sday+"/"+smonth+";"+shour+":"+sminute+";"+stday+"/"+stmonth+";"+sthour+":"+stminute+";"+str(notes)+"\n")
+            f.write(str(self.listofworks[self.actualproject][self.projecthandler.columnboard])+";"+sday+"/"+smonth+"/"+syear+";"+shour+":"+sminute+";"+stday+"/"+stmonth+"/"+styear+";"+sthour+":"+stminute+";"+str(addedtime)+";"+str(notes)+"\n")
         f.close()
 
     def settings(self, reconfigure=False):
@@ -558,3 +569,9 @@ class Window(QWidget):
         except Exception as re:
             print(re)
             return False
+
+    def showstatistics(self):
+        stats = statistics(self.pathprj,self.nameprj)
+        stats.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+        if stats.exec_() == QtWidgets.QDialog.Accepted:
+            self.pandashow(stats.data)

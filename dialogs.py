@@ -1,4 +1,7 @@
 from PyQt5.QtWidgets import *
+import pandas as pd
+from datetime import datetime
+import os
 
 def messageshow(text, style="std", title="Information"):
     msg = QMessageBox()
@@ -183,11 +186,12 @@ class settings(QDialog):
         self.LineColumn = QLineEdit()
         self.LineColumn.setText(self.listcolumn.join(self.columnname))
         self.LineColumn.returnPressed.connect(self.changevalue)
+        self.LineColumn.textChanged.connect(self.changevalue)
         layout.addWidget(self.LineColumn, row, 1)
 
         row = row + 1
         self.NameColumnbtn  = QtWidgets.QPushButton('Show')
-        self.NameColumnbtn.clicked.connect(self.show)
+        self.NameColumnbtn.clicked.connect(self.showm)
         self.NameColumnbtn.setMaximumWidth(100)
         layout.addWidget(self.NameColumnbtn, row, 1)
         self.NameColumn  = QLabel('Required:', self)
@@ -201,20 +205,24 @@ class settings(QDialog):
         layout.addWidget(endButton, row, 0)
 
     def loadini(self):
-        self.sheetname=self.configini['PRJ']['sheet']
-        self.skiprow=self.configini['PRJ']['skiprow']
-        self.minutes=self.configini['PRJ']['stepminutes']
-        self.filter=self.configini['PRJ']['filterprojectby']
-        self.columnname=[]
-        self.columnname.append(str(self.configini['PRJ']['columncustomerprj']))
-        self.columnname.append(str(self.configini['PRJ']['columncustomer']))
-        self.columnname.append(str(self.configini['PRJ']['columnboard']))
-        self.columnname.append(str(self.configini['PRJ']['columnprevhour']))
-        self.columnname.append(str(self.configini['PRJ']['columnunitcost']))
-        self.columnname.append(str(self.configini['PRJ']['columncost']))
-        self.columnname.append(str(self.configini['PRJ']['columncostnotax']))
-        self.columnname.append(str(self.configini['PRJ']['columneffectivehour']))
-        self.columnname.append(str(self.configini['PRJ']['columnstatus']))
+        try:
+            self.sheetname=self.configini['PRJ']['sheet']
+            self.skiprow=self.configini['PRJ']['skiprow']
+            self.minutes=self.configini['PRJ']['stepminutes']
+            self.filter=self.configini['PRJ']['filterprojectby']
+            self.columnname=[]
+            self.columnname.append(str(self.configini['PRJ']['columncustomerprj']))
+            self.columnname.append(str(self.configini['PRJ']['columncustomer']))
+            self.columnname.append(str(self.configini['PRJ']['columnboard']))
+            self.columnname.append(str(self.configini['PRJ']['columnprevhour']))
+            self.columnname.append(str(self.configini['PRJ']['columnunitcost']))
+            self.columnname.append(str(self.configini['PRJ']['columncost']))
+            self.columnname.append(str(self.configini['PRJ']['columncostnotax']))
+            self.columnname.append(str(self.configini['PRJ']['columneffectivehour']))
+            self.columnname.append(str(self.configini['PRJ']['columnstatus']))
+        except Exception as re:
+            messageshow("Error loading .ini file. Re-install application or check\n"+str(re),"ok")
+            sys.exit()
 
 
     def changevalue(self):
@@ -239,7 +247,7 @@ class settings(QDialog):
             print('Error loading ini file --> ', re)
             self.accept()
             return None
-    def show(self):
+    def showm(self):
         messageshow('columncustomerprj;columncustomer;columnboard;columnprevhour;columnunitcost;columncost;columncostnotax;columneffectivehour;columnstatus',"ok")
 
     def returnOK(self):
@@ -247,15 +255,64 @@ class settings(QDialog):
         return self.configini
 
 
-def main():
-    app = QtWidgets.QApplication(sys.argv)
-    for i in range(10):
-        ex = fields(i)
-        ex.setAttribute(QtCore.Qt.WA_DeleteOnClose)
-        if ex.exec_() == QtWidgets.QDialog.Accepted:
-            print(ex.val)
+class statistics(QDialog):
+    def __init__(self, projectfolder,projectname="", parent=None):
+        super(statistics, self).__init__(parent)
+        self.projectname=projectname
+        self.projectfolder=projectfolder
+
+        self.spenttime=[]
+        self.printable=[]
+        self.listofcsv = []
+        self.data = []
+        self.loadcsv()
+        self.initUI()
+
+    def initUI(self):
+        layout = QtWidgets.QGridLayout(self)
+        self.setWindowTitle(self.projectname)
+        self.projects_cb=[]
+        self.projects_btn=[]
+        row = 0
+        for i in range(0, len(self.listofcsv)):
+            self.projects_cb.append(QCheckBox(self.listofcsv[i], self))
+            layout.addWidget(self.projects_cb[i], row, 1)
+            self.projects_cb[i].setChecked(True)
+            row=row+1
+
+        endButton = QtWidgets.QPushButton('OK')
+        endButton.clicked.connect(self.returnOK)
+        endButton.setMaximumWidth(40)
+        layout.addWidget(endButton, row, 0)
 
 
+    def loadcsv(self):
+        csvfolder=self.projectfolder+"/dbfile/"
 
+        for file in os.listdir(csvfolder):
+            if file.lower().endswith('.csv'):
+                self.listofcsv.append(file)
+        print(self.listofcsv)
 
+    def dofilter(self):
+        format = '%d/%m/%Y'
+        dateparse = lambda dates: [datetime.strptime(d, format) for d in dates]
+        for i in range(0,len(self.projects_cb)):
+            if self.projects_cb[i].isChecked():
+                frame = []
+                filepath = self.projectfolder + "/dbfile/" + self.listofcsv[i]
+                try:
+                    df = pd.read_csv(filepath, delimiter=";",
+                                 names=['projectname', 'date_start', 'time_start', 'date_stop', 'time_stop',
+                                        'timeelapsed', 'notes'], parse_dates=True, date_parser=dateparse)
+                except:
+                    messageshow("Error loading csv file for "+str(filepath))
+                frame.append(df)
 
+        self.data = pd.concat(frame, axis=0, ignore_index=True)
+
+    def returnOK(self):
+        self.dofilter()
+        self.loadcsv()
+        self.accept()
+        return True

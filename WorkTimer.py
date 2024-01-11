@@ -5,8 +5,8 @@
 # Version:      See version
 #===============================================================================================================
 
-import sys
-version="0.9.2"
+import sys, os
+version="0.9.3"
 myappid = 'AndreaGuglielmini.WorkTimer.GUI'+version # arbitrary string
 
 import ctypes
@@ -14,11 +14,8 @@ import ctypes
 ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
 
 from PyQt5.QtWidgets import *
-from PyQt5.QtWidgets import QMessageBox
+from PyQt5.QtWidgets import QMessageBox,QFileDialog
 from confighandler import *
-
-# GENERIC CONFIG
-configfile="config.ini"
 
 def messageshow(text, style="std", title="Information"):
     msg = QMessageBox()
@@ -36,12 +33,35 @@ def messageshow(text, style="std", title="Information"):
     else:
         return False
 
+# GENERIC CONFIG
+configfile="config.ini"
+configfilewrp=configfile+".wrp"
+
 
 if __name__ == "__main__":
-
+    from pandasgui import show as pandashow
     app = QApplication(sys.argv)
     print("###### WORK TIMER ########")
     print("Ver ", version)
+
+    # sanity check
+    if not os.path.isfile(configfile):
+        if not os.path.isfile(configfilewrp):
+            filename = QFileDialog.getOpenFileName()
+
+            if filename != "":
+                f=open(configfilewrp,"w")
+                f.write(filename[0])
+                f.close
+                configfile=(filename[0])
+            else:
+                messageshow("No valid config.ini file", "ok")
+                sys.exit()
+        else:
+            f=open(configfilewrp,"r")
+            configfile=f.read()
+            print(configfile)
+
 
     try:
         confighand=confighandler(configfile)
@@ -58,7 +78,7 @@ if __name__ == "__main__":
         except:
             project=""
     else:
-        pass #TBD select project file
+        pass
 
     from os.path import exists
 
@@ -75,7 +95,7 @@ if __name__ == "__main__":
 
 
     from WorkTimer_GUI import Window
-    screen = Window(version, project, messageshow,confighand)
+    screen = Window(version, project, messageshow,confighand,pandashow)
     screen.show()
 
     sys.exit(app.exec_())
