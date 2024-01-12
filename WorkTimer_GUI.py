@@ -119,10 +119,10 @@ class Window(QWidget):
         self.EditTimebtn = QPushButton('Modify Start Time', self)
         self.EditTimebtn.clicked.connect(self.editstarttime)
         self.layout.addWidget(self.EditTimebtn, menurow, self.column4)
-
-        self.Statsbtn = QPushButton('Statistics', self)
-        self.Statsbtn.clicked.connect(self.showstatistics)
-        self.layout.addWidget(self.Statsbtn, menurow, self.column5)
+        if pandashow!=False:
+            self.Statsbtn = QPushButton('Statistics', self)
+            self.Statsbtn.clicked.connect(self.showstatistics)
+            self.layout.addWidget(self.Statsbtn, menurow, self.column5)
 
         self.Settingsbtn = QPushButton('Settings', self)
         self.Settingsbtn.clicked.connect(self.settings)
@@ -282,7 +282,7 @@ class Window(QWidget):
 
 
             self.projecthandler.writevalue(updatevalue, self.actualproject+self.skiprow+2, self.projecthandler.columnEffectiveHour, self.sheet)  # TBD skiprow + 2 is not best practice...
-            self.csv_handler(self.actualprojectruntime,end,updatevalue,notes)
+            self.csv_handler(self.actualprojectruntime,end,timeelapsed,notes)
             self.isprojectrunning = False
             self.actualprojectruntime = 0
             self.actualproject=''

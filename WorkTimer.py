@@ -39,7 +39,10 @@ configfilewrp=configfile+".wrp"
 
 
 if __name__ == "__main__":
-    from pandasgui import show as pandashow
+    try:
+        from pandasgui import show as pandashow
+    except Exception as re:
+        pandashow=False
     app = QApplication(sys.argv)
     print("###### WORK TIMER ########")
     print("Ver ", version)
