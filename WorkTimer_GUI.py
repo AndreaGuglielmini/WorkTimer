@@ -5,6 +5,8 @@
 # Version:      See WorkTimer.py
 #===============================================================================================================
 from PyQt5 import QtWidgets, QtCore
+from PyQt5.QtGui import QLinearGradient,QColor, QBrush, QPalette,QPainter, QPen
+from PyQt5.QtCore import Qt
 # TBD tasto di note sul progetto? --> not useful, maybe note column?
 # statistics button from csv data
 from PyQt5.QtWidgets import *
@@ -345,7 +347,7 @@ class Window(QWidget):
         pass
 
     def exittool(self):
-        exit()
+        sys.exit()
 
     def updateGUI(self):
         self.setWindowTitle("Work Timer "+ str(self.version)+"  - PROJECT "+self.nameprj)
@@ -364,8 +366,26 @@ class Window(QWidget):
                 self.LineNomeScheda[index].setText(str(self.listofworks[idxl][self.projecthandler.columnboard]))
                 self.LineOREp[index].setText(str(self.listofworks[idxl][self.projecthandler.columnprevhour]))
                 self.LinePreventivo[index].setText(str(self.listofworks[idxl][self.projecthandler.columnCost]))
-                self.LineOreLavorate[index].setText(str(self.listofworks[idxl][self.projecthandler.columnEffectiveHour]))
-                self.LineStatus[index].setText(str(self.listofworks[idxl][self.projecthandler.columnStatus]))
+
+                # --- TBD percentage
+                percentage=self.projecthandler.columnprevhour/self.projecthandler.columnEffectiveHour
+                rect = QtCore.QRectF(self.LineOreLavorate[index].rect())
+                horGradient = QLinearGradient(rect.topLeft(), rect.topRight())
+                gradient = horGradient
+                gradient.setColorAt(0, QColor("green"))
+                gradient.setColorAt(percentage, QColor("yellow"))
+                gradient.setColorAt(1, QColor("white"))
+                brush = QBrush(gradient)
+                palette = self.LineOreLavorate[index].palette()
+                palette.setBrush(QPalette.Base, brush)
+                self.LineOreLavorate[index].setPalette(palette)
+                painter = QPainter(self)
+                painter.setPen(QPen(Qt.black, 4, Qt.SolidLine))
+                self.LineOreLavorate[index].setText(
+                    str(self.listofworks[idxl][self.projecthandler.columnEffectiveHour]))
+                # --- TBD
+
+
                 # TBD self.btnstart[index].setText("Start "+str(self.listofworks[idxl][self.projecthandler.columnboard]))
                 self.btnstart[index].setText("Start "+str(index))
                 self.btnstart[index].setEnabled(True)
@@ -428,7 +448,7 @@ class Window(QWidget):
 
         self.LineOreLavorate.append(QLineEdit())
         self.LineOreLavorate[linerow].setPlaceholderText("")
-        self.LineOreLavorate[linerow].setStyleSheet("color: black;border: 1px solid gray;")
+        #self.LineOreLavorate[linerow].setStyleSheet("color: black;border: 1px solid gray;")
         self.LineOreLavorate[linerow].setEnabled(False)
 
         self.LineStatus.append(QLineEdit())

@@ -2,7 +2,7 @@
 
 
 a = Analysis(
-    ['WorkTimer.py'],
+    ['hiddenimports=qtstylish', 'WorkTimer.py'],
     pathex=[],
     binaries=[],
     datas=[],
@@ -20,12 +20,12 @@ exe = EXE(
     a.scripts,
     [],
     exclude_binaries=True,
-    name='WorkTimer',
+    name='hiddenimports=qtstylish',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,
     upx=True,
-    console=True,
+    console=False,
     disable_windowed_traceback=False,
     argv_emulation=False,
     target_arch=None,
@@ -39,5 +39,5 @@ coll = COLLECT(
     strip=False,
     upx=True,
     upx_exclude=[],
-    name='WorkTimer',
+    name='hiddenimports=qtstylish',
 )

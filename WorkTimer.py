@@ -42,6 +42,7 @@ if __name__ == "__main__":
     try:
         from pandasgui import show as pandashow
     except Exception as re:
+        print(re)
         pandashow=False
     app = QApplication(sys.argv)
     print("###### WORK TIMER ########")
