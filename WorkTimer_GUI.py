@@ -374,7 +374,7 @@ class Window(QWidget):
                 self.LineOreLavorate[index].setText(
                     str(self.listofworks[idxl][self.projecthandler.columnEffectiveHour]))
                 # --- TBD
-
+                self.LineStatus[index].setText(str(self.listofworks[idxl][self.projecthandler.columnStatus]))
 
                 # TBD self.btnstart[index].setText("Start "+str(self.listofworks[idxl][self.projecthandler.columnboard]))
                 self.btnstart[index].setText("Start "+str(index))
@@ -440,8 +440,9 @@ class Window(QWidget):
         self.LineOreLavorate[linerow].setPlaceholderText("")
         self.LineOreLavorate[linerow].setStyleSheet("color: black;border: 1px solid gray;")
         self.LineOreLavorate[linerow].setEnabled(False)
-
         self.LineOreLavorate_PB.append(QProgressBar())
+        self.LineOreLavorate_PB[linerow].setStyleSheet("")
+        self.LineOreLavorate_PB[linerow].setStyleSheet("QProgressBar::chunk{background-color: #2196F3;width: 6px; margin: 0.5px}")
         self.LineOreLavorate_PB[linerow].setValue(0)
 
         self.LineStatus.append(QLineEdit())
@@ -453,7 +454,7 @@ class Window(QWidget):
         self.btnstart[linerow].clicked.connect(self.startcounter)
         self.btnstart[linerow].setMaximumWidth(100)
         self.btnstart[linerow].setStyleSheet('text-align: left;')
-        self.layout.addWidget(self.btnstart[-1], menurow, self.column8)
+        self.layout.addWidget(self.btnstart[-1], menurow, self.column9)
 
         self.layout.addWidget(self.LineAzienda[-1], menurow, self.column1)
         self.layout.addWidget(self.LineCliente[-1], menurow, self.column2)
