@@ -4,11 +4,12 @@
 # Application:  WorKTimer GUI
 # Version:      See WorkTimer.py
 #===============================================================================================================
+# TBD Check index of rows when there are not filtered projects
+
 from PyQt5 import QtWidgets, QtCore
 from PyQt5.QtGui import QLinearGradient,QColor, QBrush, QPalette,QPainter, QPen
 from PyQt5.QtCore import Qt
-# TBD tasto di note sul progetto? --> not useful, maybe note column?
-# statistics button from csv data
+
 from PyQt5.QtWidgets import *
 from PyQt5.QtWidgets import QMessageBox,QFileDialog
 import datetime
@@ -370,6 +371,11 @@ class Window(QWidget):
 
                 # --- TBD percentage
                 percentage=self.listofworks[idxl][self.projecthandler.columnEffectiveHour]/self.listofworks[idxl][self.projecthandler.columnprevhour]
+                try:
+                    a=int(percentage)
+                except:
+                    percentage=0
+
                 self.LineOreLavorate_PB[index].setValue(int(percentage*100))
                 self.LineOreLavorate[index].setText(
                     str(self.listofworks[idxl][self.projecthandler.columnEffectiveHour]))
@@ -388,6 +394,7 @@ class Window(QWidget):
                 self.LineOreLavorate[index].setText("")
                 self.LineStatus[index].setText("")
                 self.btnstart[index].setText("")
+                self.LineOreLavorate_PB[index].setValue(0)
                 self.btnstart[index].setEnabled(False)
 
         if self.isprojectrunning:
