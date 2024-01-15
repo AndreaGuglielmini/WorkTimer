@@ -147,6 +147,7 @@ class Window(QWidget):
         self.LineOREp = []
         self.LinePreventivo = []
         self.LineOreLavorate = []
+        self.LineOreLavorate_PB = []
         self.btnstart=[]
         self.LineStatus=[]
 
@@ -171,7 +172,7 @@ class Window(QWidget):
             self.increaserow(linerow, menurow+linerow)
             linerow = linerow + 1
 
-        menurow = menurow + linerow
+        menurow = menurow + linerow+1
         self.stopbtn = QPushButton('Stop timer', self)
         self.stopbtn.clicked.connect(self.stopcounter)
         self.layout.addWidget(self.stopbtn, menurow, self.column1)
@@ -368,19 +369,8 @@ class Window(QWidget):
                 self.LinePreventivo[index].setText(str(self.listofworks[idxl][self.projecthandler.columnCost]))
 
                 # --- TBD percentage
-                percentage=self.projecthandler.columnprevhour/self.projecthandler.columnEffectiveHour
-                rect = QtCore.QRectF(self.LineOreLavorate[index].rect())
-                horGradient = QLinearGradient(rect.topLeft(), rect.topRight())
-                gradient = horGradient
-                gradient.setColorAt(0, QColor("green"))
-                gradient.setColorAt(percentage, QColor("yellow"))
-                gradient.setColorAt(1, QColor("white"))
-                brush = QBrush(gradient)
-                palette = self.LineOreLavorate[index].palette()
-                palette.setBrush(QPalette.Base, brush)
-                self.LineOreLavorate[index].setPalette(palette)
-                painter = QPainter(self)
-                painter.setPen(QPen(Qt.black, 4, Qt.SolidLine))
+                percentage=self.listofworks[idxl][self.projecthandler.columnEffectiveHour]/self.listofworks[idxl][self.projecthandler.columnprevhour]
+                self.LineOreLavorate_PB[index].setValue(int(percentage*100))
                 self.LineOreLavorate[index].setText(
                     str(self.listofworks[idxl][self.projecthandler.columnEffectiveHour]))
                 # --- TBD
@@ -448,8 +438,11 @@ class Window(QWidget):
 
         self.LineOreLavorate.append(QLineEdit())
         self.LineOreLavorate[linerow].setPlaceholderText("")
-        #self.LineOreLavorate[linerow].setStyleSheet("color: black;border: 1px solid gray;")
+        self.LineOreLavorate[linerow].setStyleSheet("color: black;border: 1px solid gray;")
         self.LineOreLavorate[linerow].setEnabled(False)
+
+        self.LineOreLavorate_PB.append(QProgressBar())
+        self.LineOreLavorate_PB[linerow].setValue(0)
 
         self.LineStatus.append(QLineEdit())
         self.LineStatus[linerow].setPlaceholderText("")
@@ -468,6 +461,7 @@ class Window(QWidget):
         self.layout.addWidget(self.LineOREp[-1], menurow, self.column4)
         self.layout.addWidget(self.LinePreventivo[-1], menurow, self.column5)
         self.layout.addWidget(self.LineOreLavorate[-1], menurow, self.column6)
+        self.layout.addWidget(self.LineOreLavorate_PB[-1], menurow, self.column8)
         self.layout.addWidget(self.LineStatus[-1], menurow, self.column7)
 
     def editstarttime(self):
