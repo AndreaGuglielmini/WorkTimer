@@ -13,6 +13,7 @@ from PyQt5 import QtCore
 from PyQt5.QtCore import  Qt
 import openpyxl
 import xlwings as xl
+import math
 
 class work_project:
     def __init__(self, excelfile,feedback, sheet,columnnamelist, skip=0):
@@ -79,7 +80,12 @@ class work_project:
     def loadlistwork(self):
         self.listofwork=[]
         for x in self.cat_list_raw:
-            self.listofwork.append(x)
+
+            try:
+                if math.isnan(x[0]):
+                    print("skip")
+            except:
+                self.listofwork.append(x)
 
         print("cat_list_raw: ",self.cat_list_raw)
 
