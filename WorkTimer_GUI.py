@@ -6,6 +6,8 @@
 #===============================================================================================================
 # TBD Check index of rows when there are not filtered projects
 
+
+
 from PyQt5 import QtWidgets, QtCore
 from PyQt5.QtGui import QLinearGradient,QColor, QBrush, QPalette,QPainter, QPen
 from PyQt5.QtCore import Qt
@@ -15,9 +17,10 @@ from PyQt5.QtWidgets import QMessageBox,QFileDialog
 import datetime
 from datetime import timedelta, datetime
 import sys
-
+# Local imports
 from dialogs import settings
 from dialogs import statistics
+from DB_lib import work_project
 
 import math
 
@@ -44,33 +47,8 @@ class Window(QWidget):
         if not load:
                 self.settings(True)
 
-        from DB_lib import work_project
-        ret=True
-        if project != "":
-            self.projecthandler=work_project(project,feedback, self.sheet,self.columnnamelist,self.skiprow)
-        else:
-            self.openprj()
-            self.projecthandler = work_project(self.project, feedback, self.sheet, self.columnnamelist, self.skiprow)
-            load = self.loadini()
-            if not load:
-                self.feedback("Error in config file, aborting", "ok")
-                sys.exit()
-        if self.projecthandler.ret is None:
-            while ret==True:
-                ret=self.feedback("Error loading. Reconfigure?")
-                if ret:
-                    self.settings(True)
-                    self.projecthandler = work_project(project, feedback, self.sheet, self.columnnamelist, self.skiprow)
-                    if self.projecthandler.ret is not None:
-                        ret=False
-                    load = self.loadini()
-                    if not load:
-                        self.feedback("Error in config file, aborting","ok")
-                        sys.exit()
-                else:
-                    sys.exit()
-        else:
-            self.HeadersColumn= self.projecthandler.ret
+
+        self.loadtheprj(project, feedback)
 
         if self.isprojectrunning:
             self.actualprojectruntime = self.configini['RUN']['actualprojectruntime']
@@ -107,7 +85,7 @@ class Window(QWidget):
         ### ROW 1 ###
 
         self.OpenPRJbtn = QPushButton('Open Prj', self)
-        self.OpenPRJbtn.clicked.connect(self.openprj)
+        self.OpenPRJbtn.clicked.connect(self.openprj_btn)
         self.layout.addWidget(self.OpenPRJbtn, menurow, self.column1)
 
         self.UpdatePRJbtn = QPushButton('Update Prj', self)
@@ -218,6 +196,38 @@ class Window(QWidget):
 
         self.updateGUI()
 
+    def openprj_btn(self):
+        self.loadtheprj("", self.feedback)
+        self.updateprj()
+
+    def loadtheprj(self, project, feedback):
+        ret=True
+        if project != "":
+            self.projecthandler=work_project(project,feedback, self.sheet,self.columnnamelist,self.skiprow)
+        else:
+            self.openprj()
+            self.projecthandler = work_project(self.project, feedback, self.sheet, self.columnnamelist, self.skiprow)
+            load = self.loadini()
+            if not load:
+                self.feedback("Error in config file, aborting", "ok")
+                sys.exit()
+        if self.projecthandler.ret is None:
+            while ret==True:
+                ret=self.feedback("Error loading. Reconfigure?")
+                if ret:
+                    self.settings(True)
+                    self.projecthandler = work_project(project, feedback, self.sheet, self.columnnamelist, self.skiprow)
+                    if self.projecthandler.ret is not None:
+                        ret=False
+                    load = self.loadini()
+                    if not load:
+                        self.feedback("Error in config file, aborting","ok")
+                        sys.exit()
+                else:
+                    sys.exit()
+        else:
+            self.HeadersColumn= self.projecthandler.ret
+
     def updatefilter(self):
         if self.FilterBtn.isChecked():
             self.updatelist(True)
@@ -285,7 +295,7 @@ class Window(QWidget):
                 updatevalue=timeelapsed
 
 
-            self.projecthandler.writevalue(updatevalue, self.actualproject+self.skiprow+2, self.projecthandler.columnEffectiveHour, self.sheet)  # TBD skiprow + 2 is not best practice...
+            self.projecthandler.writevalue(updatevalue, self.projecthandler.columnEffectiveHour, self.sheet)  # TBD skiprow + 2 is not best practice...
             self.csv_handler(self.actualprojectruntime,end,timeelapsed,notes)
             self.isprojectrunning = False
             self.actualprojectruntime = 0
@@ -334,6 +344,7 @@ class Window(QWidget):
             self.project=filename[0]
             self.configini['PRJ']['acutalproject']=filename[0]
             self.confighand.writevalue(self.configini)
+            self.projecthandler = work_project(self.project, self.feedback, self.sheet, self.columnnamelist, self.skiprow)
         else:
             return None
 

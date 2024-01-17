@@ -121,14 +121,14 @@ class work_project:
         except:
             return None
 
-    def writevalue(self, value, row, column,sheet):
+    def writevalue(self, value, column,sheet):
         #book=load_workbook(self.excelfile)
         #writer = pd.ExcelWriter(self.excelfile, mode='a', engine='openpyxl')
         writer = openpyxl.load_workbook(self.excelfile)
         worksheet = writer.get_sheet_by_name(sheet)
         #writer.book=book
         columnlist=['A','B','C','D','E','F','G','H','I','L','M']
-        writeto = str(columnlist[column])+str(row)
+        writeto = str(columnlist[column])+str(self.updaterrow+2)
         print(worksheet)
         worksheet[writeto] = value
         try:
@@ -147,9 +147,12 @@ class work_project:
             if element[self.columnStatus] == filter or filter=="all":
                 if (str(element[self.columncustomerprj]))!='nan':
                     listofworks.append(element)
+                if element[self.columnboard] == runningprj:
+                    self.updaterrow = len(listofworks)-1
             else:
                 if element[self.columnboard]==runningprj:
                     listofworks.append(element)
-                    found=cnt
+                    found=len(listofworks)-1
+                    self.updaterrow=found
             cnt=cnt+1
         return listofworks, found
