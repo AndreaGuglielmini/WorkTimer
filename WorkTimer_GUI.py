@@ -4,13 +4,10 @@
 # Application:  WorKTimer GUI
 # Version:      See WorkTimer.py
 #===============================================================================================================
-# TBD Check index of rows when there are not filtered projects
-
-
 
 from PyQt5 import QtWidgets, QtCore
-from PyQt5.QtGui import QLinearGradient,QColor, QBrush, QPalette,QPainter, QPen
-from PyQt5.QtCore import Qt
+#from PyQt5.QtGui import QLinearGradient,QColor, QBrush, QPalette,QPainter, QPen
+#from PyQt5.QtCore import Qt
 
 from PyQt5.QtWidgets import *
 from PyQt5.QtWidgets import QMessageBox,QFileDialog
@@ -52,10 +49,8 @@ class Window(QWidget):
 
         if self.isprojectrunning:
             self.actualprojectruntime = self.configini['RUN']['actualprojectruntime']
-            self.actualproject = int(self.configini['RUN']['actualproject'])
             self.actualprojectname = str(self.configini['RUN']['actualprojectname'])
         else:
-            self.actualproject=0
             self.actualprojectname = ""
             self.actualprojectruntime=0
             self.isprojectrunning=False
@@ -227,6 +222,7 @@ class Window(QWidget):
                     sys.exit()
         else:
             self.HeadersColumn= self.projecthandler.ret
+            self.keys=self.projecthandler.keys
 
     def updatefilter(self):
         if self.FilterBtn.isChecked():
@@ -242,9 +238,7 @@ class Window(QWidget):
         else:
             filter="all"
         self.projecthandler.loadlistwork()
-        self.listofworks, prjrun=self.projecthandler.updatelist(self.actualprojectname, filter)
-        if prjrun>0:
-            self.actualproject=prjrun
+        self.listofworks, self.dictofworks=self.projecthandler.updatelist(self.actualprojectname, filter)
 
     def stopcounter(self):
         modifiers = QtWidgets.QApplication.keyboardModifiers()
@@ -254,10 +248,8 @@ class Window(QWidget):
             self.feedback=("Mismatch execution of timer, aborting..")
             self.isprojectrunning = False
             self.actualprojectruntime = 0
-            self.actualproject=''
             self.configini['RUN']['isprojectrunning']=self.isprojectrunning
             self.configini['RUN']['actualprojectruntime']=self.actualprojectruntime
-            self.configini['RUN']['actualproject']=self.actualproject
             return 0
 
         if self.isprojectrunning :
@@ -279,31 +271,36 @@ class Window(QWidget):
             #Always load from config.ini, because we can arrive from a closed app until running..
             self.isprojectrunning=self.configini.getboolean('RUN','isprojectrunning')
             self.actualprojectruntime=datetime.strptime(self.configini['RUN']['actualprojectruntime'],'%y/%m/%d, %H:%M:%S')
-            self.actualproject=int(self.configini['RUN']['actualproject'])
+
             seconds = (end - self.actualprojectruntime).total_seconds()
             timeelapsed=round(seconds/60/self.step,0)*0.25   #round up
             #timeelapsed=(math.ceil(seconds/60/self.step))*0.25     #math.ceil seems to be aggressive with times!
             if ok:
                 self.feedback("Added time: "+str(timeelapsed),"ok")
             try:
-                actualvalue=float(self.listofworks[self.actualproject][self.projecthandler.columnEffectiveHour])
+                actualvalue=float(self.dictofworks[self.actualprojectname][self.projecthandler.columnEffectiveHour])
             except:
                 actualvalue=0
             if actualvalue>0:
                 updatevalue=actualvalue+timeelapsed
             else:
                 updatevalue=timeelapsed
+            row=1+self.skiprow
+            for elem in self.listofworks:
+                try:
+                    row = row + 1
+                    temp=elem.index(self.actualprojectname)
+                    break
+                except:
+                    print("not found")
 
-
-            self.projecthandler.writevalue(updatevalue, self.projecthandler.columnEffectiveHour, self.sheet)  # TBD skiprow + 2 is not best practice...
+            self.projecthandler.writevalue(updatevalue, self.projecthandler.columnEffectiveHour,row, self.sheet) #TBD
             self.csv_handler(self.actualprojectruntime,end,timeelapsed,notes)
             self.isprojectrunning = False
             self.actualprojectruntime = 0
-            self.actualproject=''
             self.actualprojectname=''
             self.configini['RUN']['isprojectrunning']=str(self.isprojectrunning)
             self.configini['RUN']['actualprojectruntime']=str(self.actualprojectruntime)
-            self.configini['RUN']['actualproject']=str(self.actualproject)
             self.configini['RUN']['actualprojectname']=str(self.actualprojectname)
             self.confighand.writevalue(self.configini)
             self.projecthandler.read_excel(self.sheet)
@@ -311,15 +308,15 @@ class Window(QWidget):
 
     def startcounter(self):
         sender = self.sender()
-        print(sender.text() + ' was pressed')
-        self.actualproject=int(sender.text()[-1])
-        if self.actualproject>=len(self.listofworks):
+        name=self.listofworks[int(sender.text()[-1])][self.projecthandler.columnboard]
+        print(name + ' was pressed')
+        invalid=False
+        if not (name in self.dictofworks):
+            invalid=True
+        if invalid:
             print("Invalid project")
         else:
-            self.RunningProject.setText((self.listofworks[self.actualproject][self.projecthandler.columnboard]))
-            self.RunningProject.setStyleSheet("border: 1px solid grey;background-color: yellow ")
-
-            self.actualprojectname=((self.listofworks[self.actualproject][self.projecthandler.columnboard]))
+            self.actualprojectname=name
 
             if not self.isprojectrunning:
                 self.isprojectrunning=True
@@ -330,7 +327,6 @@ class Window(QWidget):
             else:
                 self.feedback("Project already running, please stop first","ok")
                 return 0
-        self.configini['RUN']['actualproject']=str(self.actualproject)
         self.configini['RUN']['actualprojectruntime']=str(self.actualprojectruntime)
         self.configini['RUN']['isprojectrunning']=str(self.isprojectrunning)
         self.configini['RUN']['actualprojectname']=str(self.actualprojectname)
@@ -364,24 +360,47 @@ class Window(QWidget):
 
     def updateGUI(self):
         self.setWindowTitle("Work Timer "+ str(self.version)+"  - PROJECT "+self.nameprj)
-        if len(self.listofworks)>self.numerorighe:
+
+        # now create the displayed item
+        attr_index_active=1
+        attr_index_filtered=0
+
+        displayed=[]
+        if self.FilterBtn.isChecked():
+            for ix in range(0, len(self.listofworks)):
+                name=self.listofworks[ix][self.projecthandler.columnboard]
+                if self.dictofworks[name+"attr"][attr_index_filtered]==True or self.dictofworks[name+"attr"][attr_index_active]==True:
+                    displayed.append(self.listofworks[ix])
+        else:
+            displayed=self.listofworks
+
+
+        if len(displayed)>self.numerorighe:
             self.PrevPagebtn.setEnabled(True)
             self.NextPagebtn.setEnabled(True)
         else:
             self.PrevPagebtn.setEnabled(False)
             self.NextPagebtn.setEnabled(False)
-        self.PageText.setText("Page: "+str(self.actualpage+1) + " / " + str(math.ceil(len(self.listofworks) / self.numerorighe)))
+        if self.actualpage*self.numerorighe > len(displayed)-self.numerorighe:
+            self.NextPagebtn.setEnabled(False)
+        else:
+            self.NextPagebtn.setEnabled(True)
+        self.PageText.setText("Page: "+str(self.actualpage+1) + " / " + str(math.ceil(len(displayed) / self.numerorighe)))
+
+
+
         for index in range(0, self.numerorighe):
             idxl=index + (self.numerorighe * self.actualpage)
-            if idxl<len(self.listofworks):
-                self.LineAzienda[index].setText(str(self.listofworks[idxl][self.projecthandler.columncustomerprj]))
-                self.LineCliente[index].setText(str(self.listofworks[idxl][self.projecthandler.columncustomer]))
-                self.LineNomeScheda[index].setText(str(self.listofworks[idxl][self.projecthandler.columnboard]))
-                self.LineOREp[index].setText(str(self.listofworks[idxl][self.projecthandler.columnprevhour]))
-                self.LinePreventivo[index].setText(str(self.listofworks[idxl][self.projecthandler.columnCost]))
+            if int(idxl)<len(displayed):
+                name = displayed[idxl][self.projecthandler.columnboard]
+                self.LineAzienda[index].setText(str(self.dictofworks[name][self.projecthandler.columncustomerprj]))
+                self.LineCliente[index].setText(str(self.dictofworks[name][self.projecthandler.columncustomer]))
+                self.LineNomeScheda[index].setText(str(self.dictofworks[name][self.projecthandler.columnboard]))
+                self.LineOREp[index].setText(str(self.dictofworks[name][self.projecthandler.columnprevhour]))
+                self.LinePreventivo[index].setText(str(self.dictofworks[name][self.projecthandler.columnCost]))
 
                 # --- TBD percentage
-                percentage=self.listofworks[idxl][self.projecthandler.columnEffectiveHour]/self.listofworks[idxl][self.projecthandler.columnprevhour]
+                percentage=self.dictofworks[name][self.projecthandler.columnEffectiveHour]/self.dictofworks[name][self.projecthandler.columnprevhour]
                 try:
                     a=int(percentage)
                 except:
@@ -389,11 +408,10 @@ class Window(QWidget):
 
                 self.LineOreLavorate_PB[index].setValue(int(percentage*100))
                 self.LineOreLavorate[index].setText(
-                    str(self.listofworks[idxl][self.projecthandler.columnEffectiveHour]))
+                    str(self.dictofworks[name][self.projecthandler.columnEffectiveHour]))
                 # --- TBD
-                self.LineStatus[index].setText(str(self.listofworks[idxl][self.projecthandler.columnStatus]))
+                self.LineStatus[index].setText(str(self.dictofworks[name][self.projecthandler.columnStatus]))
 
-                # TBD self.btnstart[index].setText("Start "+str(self.listofworks[idxl][self.projecthandler.columnboard]))
                 self.btnstart[index].setText("Start "+str(index))
                 self.btnstart[index].setEnabled(True)
             else:
@@ -411,7 +429,8 @@ class Window(QWidget):
         if self.isprojectrunning:
             self.LasRunProject.setText(self.actualprojectruntime)
             self.LasRunProject.setStyleSheet("border: 1px solid grey;background-color: yellow ")
-            self.RunningProject.setText((self.listofworks[self.actualproject][self.projecthandler.columnboard]))
+
+            self.RunningProject.setText((self.dictofworks[self.actualprojectname][self.projecthandler.columnboard]))
             self.RunningProject.setStyleSheet("border: 1px solid grey;background-color: yellow ")
             time = datetime.now()
             elapsed=(time - datetime.strptime(self.actualprojectruntime,'%y/%m/%d, %H:%M:%S')).total_seconds()
@@ -460,7 +479,17 @@ class Window(QWidget):
         self.LineOreLavorate[linerow].setEnabled(False)
         self.LineOreLavorate_PB.append(QProgressBar())
         self.LineOreLavorate_PB[linerow].setStyleSheet("")
-        self.LineOreLavorate_PB[linerow].setStyleSheet("QProgressBar::chunk{background-color: #2196F3;width: 6px; margin: 0.5px}")
+        self.LineOreLavorate_PB[linerow].setStyleSheet('''
+            QProgressBar {  background-color: white;
+                            color: black;               /* Text color (not highlighted)
+                            border: 2px solid white;      /* Border color */
+                            border-radius: 5px;           /* Rounded border edges */
+                            margin-left: 24px;
+                            margin-right: 24px;           
+                            text-align: center            /* Center the X% indicator */
+                        }
+            QProgressBar::chunk{background-color: #86ED26;width: 6px; margin: 0.5px}"
+            ''')
         self.LineOreLavorate_PB[linerow].setValue(0)
 
         self.LineStatus.append(QLineEdit())
@@ -515,7 +544,16 @@ class Window(QWidget):
             self.feedback("Start a timer first!","ok")
 
     def csv_handler(self, timestart, timestop, addedtime, notes=""):
-        csvfile=str(self.pathprj)+"/dbfile/"+(self.listofworks[self.actualproject][self.projecthandler.columnboard])+".csv"
+        row = 1 + self.skiprow
+        for elem in self.listofworks:
+            try:
+                row = row + 1
+                temp = elem.index(self.actualprojectname)
+                break
+            except:
+                print("not found")
+        name=self.dictofworks[self.actualprojectname][self.projecthandler.columnboard]
+        csvfile=str(self.pathprj)+"/dbfile/"+str(name)+".csv"
         statinfo = os.access(csvfile, mode=os.W_OK)
         if not statinfo:
             os.makedirs(os.path.dirname(csvfile), exist_ok=True)
@@ -531,7 +569,7 @@ class Window(QWidget):
             stmonth=str(timestop.month).zfill(2)
             sthour=str(timestop.hour).zfill(2)
             stminute=str(timestop.minute).zfill(2)
-            f.write(str(self.listofworks[self.actualproject][self.projecthandler.columnboard])+";"+sday+"/"+smonth+"/"+syear+";"+shour+":"+sminute+";"+stday+"/"+stmonth+"/"+styear+";"+sthour+":"+stminute+";"+str(addedtime)+";"+str(notes)+"\n")
+            f.write(str(name)+";"+sday+"/"+smonth+"/"+syear+";"+shour+":"+sminute+";"+stday+"/"+stmonth+"/"+styear+";"+sthour+":"+stminute+";"+str(addedtime)+";"+str(notes)+"\n")
         f.close()
 
     def settings(self, reconfigure=False):

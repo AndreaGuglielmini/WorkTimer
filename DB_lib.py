@@ -21,6 +21,7 @@ class work_project:
         self.feedback=feedback
         self.excelfile=excelfile
         self.skip=skip
+        self.keys = ["name", "filtered", "active", "index","status","customer","workhour","cost"]
         ## EXCEL FILE STRUCTURE configurable with config.ini
 
 
@@ -121,14 +122,14 @@ class work_project:
         except:
             return None
 
-    def writevalue(self, value, column,sheet):
+    def writevalue(self, value, column,row,sheet):
         #book=load_workbook(self.excelfile)
         #writer = pd.ExcelWriter(self.excelfile, mode='a', engine='openpyxl')
         writer = openpyxl.load_workbook(self.excelfile)
         worksheet = writer.get_sheet_by_name(sheet)
         #writer.book=book
         columnlist=['A','B','C','D','E','F','G','H','I','L','M']
-        writeto = str(columnlist[column])+str(self.updaterrow+2)
+        writeto = str(columnlist[column])+str(row)
         print(worksheet)
         worksheet[writeto] = value
         try:
@@ -140,19 +141,24 @@ class work_project:
         writer.close()
 
     def updatelist(self, runningprj, filter):
-        found=0
-        cnt=0
-        listofworks=[]
+        dictofworks={}
+        cycle=0
+
         for element in self.listofwork:
-            if element[self.columnStatus] == filter or filter=="all":
-                if (str(element[self.columncustomerprj]))!='nan':
-                    listofworks.append(element)
-                if element[self.columnboard] == runningprj:
-                    self.updaterrow = len(listofworks)-1
+            if element[self.columnStatus] == filter:
+                isfiltered=True
             else:
-                if element[self.columnboard]==runningprj:
-                    listofworks.append(element)
-                    found=len(listofworks)-1
-                    self.updaterrow=found
-            cnt=cnt+1
-        return listofworks, found
+                isfiltered=False
+            if element[self.columnboard]==runningprj:
+                isactive=True
+            else:
+                isactive=False
+
+            #values = [element[self.columnboard],isfiltered,isactive,cycle,element[self.columnStatus],element[self.columncustomerprj],element[self.columnEffectiveHour],element[self.columnCost]]
+            values=self.listofwork[cycle]
+            attribute=[isfiltered,isactive]
+            #dictofworks[cycle] = {k: v for k, v in zip(self.keys, values)}
+            dictofworks[element[self.columnboard]] = values
+            dictofworks[element[self.columnboard]+"attr"] = attribute
+            cycle=cycle+1
+        return self.listofwork,dictofworks

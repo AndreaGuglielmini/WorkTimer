@@ -41,6 +41,7 @@ configfilewrp=configfile+".wrp"
 if __name__ == "__main__":
     try:
         from pandasgui import show as pandashow
+
     except Exception as re:
         print(re)
         pandashow=False
@@ -56,6 +57,7 @@ if __name__ == "__main__":
             if filename != "":
                 f=open(configfilewrp,"w")
                 f.write(filename[0])
+                print("Writing: ", filename[0])
                 f.close
                 configfile=(filename[0])
             else:
