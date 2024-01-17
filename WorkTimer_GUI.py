@@ -135,12 +135,22 @@ class Window(QWidget):
         #else:
         #    self.items=len(self.projecthandler.listofwork)+1
 
+        # Add name of columns
         for item in range(0,len(self.HeadersColumn)):
             self.LineHeaders.append(QLineEdit())
             self.LineHeaders[item].setText(self.HeadersColumn[item])
             self.LineHeaders[item].setStyleSheet("color: white;font: bold 16px; border: 1px solid black;background-color:  gray ")
             self.LineHeaders[item].setEnabled(False)
             self.layout.addWidget(self.LineHeaders[item], menurow, item)
+
+        # Add percentage column name
+        self.LineHeadersPB=(QLineEdit())
+        self.LineHeadersPB.setText("% Time")
+        self.LineHeadersPB.setStyleSheet("color: white;font: bold 16px; border: 1px solid black;background-color:  gray; text-align: center")
+        self.LineHeadersPB.setEnabled(False)
+        self.LineHeadersPB.setMaximumWidth(116)
+        self.layout.addWidget(self.LineHeadersPB, menurow, self.column8)
+
         menurow = menurow + 1
         for index in range(menurow,menurow+self.numerorighe):
             self.increaserow(linerow, menurow+linerow)
@@ -478,14 +488,14 @@ class Window(QWidget):
         self.LineOreLavorate[linerow].setStyleSheet("color: black;border: 1px solid gray;")
         self.LineOreLavorate[linerow].setEnabled(False)
         self.LineOreLavorate_PB.append(QProgressBar())
-        self.LineOreLavorate_PB[linerow].setStyleSheet("")
+        self.LineOreLavorate_PB[linerow].setMaximumWidth(120)
         self.LineOreLavorate_PB[linerow].setStyleSheet('''
             QProgressBar {  background-color: white;
                             color: black;               /* Text color (not highlighted)
                             border: 2px solid white;      /* Border color */
                             border-radius: 5px;           /* Rounded border edges */
-                            margin-left: 24px;
-                            margin-right: 24px;           
+                            margin-left: 2px;
+                            margin-right: 2px;           
                             text-align: center            /* Center the X% indicator */
                         }
             QProgressBar::chunk{background-color: #86ED26;width: 6px; margin: 0.5px}"
@@ -499,8 +509,8 @@ class Window(QWidget):
 
         self.btnstart.append(QPushButton('Start timer ' + str(linerow), self))
         self.btnstart[linerow].clicked.connect(self.startcounter)
-        self.btnstart[linerow].setMaximumWidth(100)
-        self.btnstart[linerow].setStyleSheet('text-align: left;')
+        self.btnstart[linerow].setMaximumWidth(60)
+        self.btnstart[linerow].setStyleSheet('text-align: center;')
         self.layout.addWidget(self.btnstart[-1], menurow, self.column9)
 
         self.layout.addWidget(self.LineAzienda[-1], menurow, self.column1)
