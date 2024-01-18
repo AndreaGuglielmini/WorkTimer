@@ -318,7 +318,7 @@ class Window(QWidget):
 
     def startcounter(self):
         sender = self.sender()
-        name=self.listofworks[int(sender.text()[-1])][self.projecthandler.columnboard]
+        name=self.displayed[int(sender.text()[-1])][self.projecthandler.columnboard]
         print(name + ' was pressed')
         invalid=False
         if not (name in self.dictofworks):
@@ -375,34 +375,34 @@ class Window(QWidget):
         attr_index_active=1
         attr_index_filtered=0
 
-        displayed=[]
+        self.displayed=[]
         if self.FilterBtn.isChecked():
             for ix in range(0, len(self.listofworks)):
                 name=self.listofworks[ix][self.projecthandler.columnboard]
                 if self.dictofworks[name+"attr"][attr_index_filtered]==True or self.dictofworks[name+"attr"][attr_index_active]==True:
-                    displayed.append(self.listofworks[ix])
+                    self.displayed.append(self.listofworks[ix])
         else:
-            displayed=self.listofworks
+            self.displayed=self.listofworks
 
 
-        if len(displayed)>self.numerorighe:
+        if len(self.displayed)>self.numerorighe:
             self.PrevPagebtn.setEnabled(True)
             self.NextPagebtn.setEnabled(True)
         else:
             self.PrevPagebtn.setEnabled(False)
             self.NextPagebtn.setEnabled(False)
-        if self.actualpage*self.numerorighe > len(displayed)-self.numerorighe:
+        if self.actualpage*self.numerorighe > len(self.displayed)-self.numerorighe:
             self.NextPagebtn.setEnabled(False)
         else:
             self.NextPagebtn.setEnabled(True)
-        self.PageText.setText("Page: "+str(self.actualpage+1) + " / " + str(math.ceil(len(displayed) / self.numerorighe)))
+        self.PageText.setText("Page: "+str(self.actualpage+1) + " / " + str(math.ceil(len(self.displayed) / self.numerorighe)))
 
 
 
         for index in range(0, self.numerorighe):
             idxl=index + (self.numerorighe * self.actualpage)
-            if int(idxl)<len(displayed):
-                name = displayed[idxl][self.projecthandler.columnboard]
+            if int(idxl)<len(self.displayed):
+                name = self.displayed[idxl][self.projecthandler.columnboard]
                 self.LineAzienda[index].setText(str(self.dictofworks[name][self.projecthandler.columncustomerprj]))
                 self.LineCliente[index].setText(str(self.dictofworks[name][self.projecthandler.columncustomer]))
                 self.LineNomeScheda[index].setText(str(self.dictofworks[name][self.projecthandler.columnboard]))
