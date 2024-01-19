@@ -412,7 +412,20 @@ class Window(QWidget):
                 # --- TBD percentage
                 percentage=self.dictofworks[name][self.projecthandler.columnEffectiveHour]/self.dictofworks[name][self.projecthandler.columnprevhour]
                 try:
-                    a=int(percentage)
+                    a=int(percentage)*100
+                    if a>=100:
+                        percentage=1
+                        self.LineOreLavorate_PB[index].setStyleSheet('''
+                            QProgressBar {  background-color: grey;
+                                            color: white;               /* Text color (not highlighted)
+                                            border: 2px solid white;      /* Border color */
+                                            border-radius: 5px;           /* Rounded border edges */
+                                            margin-left: 2px;
+                                            margin-right: 2px;           
+                                            text-align: center            /* Center the X% indicator */
+                                        }
+                            QProgressBar::chunk{background-color: red;width: 6px; margin: 0.5px}"
+                            ''')
                 except:
                     percentage=0
 
