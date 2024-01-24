@@ -319,13 +319,7 @@ class statistics(QDialog):
             self.timesum_PB.setStyleSheet('''
                 QProgressBar {  background-color: grey;
                                 color: white;               /* Text color (not highlighted)
-                                border: 2px solid white;      /* Border color */
-                                border-radius: 5px;           /* Rounded border edges */
-                                margin-left: 2px;
-                                margin-right: 2px;
-                                text-align: center            /* Center the X% indicator */
                             }
-                QProgressBar::chunk{background-color: green;vertical-width: 6px}"
                 ''')
             self.timesum_PB.setOrientation(QtCore.Qt.Vertical)
             layout.addWidget(self.timesum_PB, 0, 0,row-2,0)
@@ -393,7 +387,8 @@ class statistics(QDialog):
         if timesum > 24:
             timesum24=0
             timesum="ERR"
-        self.timesum_PB.setValue(timesum24)
+        value=int(timesum24)
+        self.timesum_PB.setValue(value)
         print(self.timesum_PB.value())
         self.timesum_PB.setFormat("")
         self.label.setText((str(timesum) + " hour"))

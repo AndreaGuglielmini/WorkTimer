@@ -440,7 +440,7 @@ class Window(QWidget):
                     percentage = 0
                 try:
                     a=float(percentage)
-                    if a>=1:
+                    if a>1:
                         text=round(percentage*100)
                         percentage=(( a % 1 ))   #Show only the exceeded time
                         self.LineOreLavorate_PB[index].setStyleSheet('''
