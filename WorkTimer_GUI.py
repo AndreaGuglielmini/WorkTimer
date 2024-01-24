@@ -7,11 +7,11 @@
 # TBD: add tool button (in place of stastitic button) with:
 # Daily effort (work hour)
 # Lists of TODOs
+# TBD: percentage over 100 management
 
 
 from PyQt5 import QtWidgets, QtCore
-#from PyQt5.QtGui import QLinearGradient,QColor, QBrush, QPalette,QPainter, QPen
-#from PyQt5.QtCore import Qt
+
 
 from PyQt5.QtWidgets import *
 from PyQt5.QtWidgets import QMessageBox,QFileDialog
@@ -67,8 +67,12 @@ class Window(QWidget):
 
         self.format = '%y/%m/%d, %H:%M:%S'
 
+        # create menu
+        toolbar = WKMenu(self.container, pandashow)
+        toolbaractive=True
 
-        menurow=0
+        self.layout.addWidget(toolbar,0,0)
+        menurow=1
         self.column1=0
         self.column2=1
         self.column3=2
@@ -82,35 +86,37 @@ class Window(QWidget):
         self.column11 = 10
 
         ### ROW 1 ###
+        if toolbaractive:
+            pass
+        else:
+            self.OpenPRJbtn = QPushButton('Open Prj', self)
+            self.OpenPRJbtn.clicked.connect(self.openprj_btn)
+            self.layout.addWidget(self.OpenPRJbtn, menurow, self.column1)
 
-        self.OpenPRJbtn = QPushButton('Open Prj', self)
-        self.OpenPRJbtn.clicked.connect(self.openprj_btn)
-        self.layout.addWidget(self.OpenPRJbtn, menurow, self.column1)
+            self.UpdatePRJbtn = QPushButton('Update Prj', self)
+            self.UpdatePRJbtn.clicked.connect(self.updateprj)
+            self.layout.addWidget(self.UpdatePRJbtn, menurow, self.column2)
 
-        self.UpdatePRJbtn = QPushButton('Update Prj', self)
-        self.UpdatePRJbtn.clicked.connect(self.updateprj)
-        self.layout.addWidget(self.UpdatePRJbtn, menurow, self.column2)
+            self.SavePRJbtn = QPushButton('Save Prj', self)
+            self.SavePRJbtn.clicked.connect(self.saveprj)
+            self.layout.addWidget(self.SavePRJbtn, menurow, self.column3)
+            self.SavePRJbtn.setEnabled(False)       # Not implemented yet --> how can be useful?
 
-        self.SavePRJbtn = QPushButton('Save Prj', self)
-        self.SavePRJbtn.clicked.connect(self.saveprj)
-        self.layout.addWidget(self.SavePRJbtn, menurow, self.column3)
-        self.SavePRJbtn.setEnabled(False)       # Not implemented yet --> how can be useful?
+            self.EditTimebtn = QPushButton('Modify Start Time', self)
+            self.EditTimebtn.clicked.connect(self.editstarttime)
+            self.layout.addWidget(self.EditTimebtn, menurow, self.column4)
+            if pandashow!=False:
+                self.Statsbtn = QPushButton('Statistics', self)
+                self.Statsbtn.clicked.connect(self.showstatistics)
+                self.layout.addWidget(self.Statsbtn, menurow, self.column5)
 
-        self.EditTimebtn = QPushButton('Modify Start Time', self)
-        self.EditTimebtn.clicked.connect(self.editstarttime)
-        self.layout.addWidget(self.EditTimebtn, menurow, self.column4)
-        if pandashow!=False:
-            self.Statsbtn = QPushButton('Statistics', self)
-            self.Statsbtn.clicked.connect(self.showstatistics)
-            self.layout.addWidget(self.Statsbtn, menurow, self.column5)
+            self.Settingsbtn = QPushButton('Settings', self)
+            self.Settingsbtn.clicked.connect(self.settings)
+            self.layout.addWidget(self.Settingsbtn, menurow, self.column6)
 
-        self.Settingsbtn = QPushButton('Settings', self)
-        self.Settingsbtn.clicked.connect(self.settings)
-        self.layout.addWidget(self.Settingsbtn, menurow, self.column6)
-
-        self.exittoolbtn = QPushButton('Exit tool', self)
-        self.exittoolbtn.clicked.connect(self.exittool)
-        self.layout.addWidget(self.exittoolbtn, menurow, self.column7)
+            self.exittoolbtn = QPushButton('Exit tool', self)
+            self.exittoolbtn.clicked.connect(self.exittool)
+            self.layout.addWidget(self.exittoolbtn, menurow, self.column7)
 
         self.numerorighe = 10
         ### ROW 2 to maxrow ###
@@ -254,10 +260,11 @@ class Window(QWidget):
         self.projecthandler.loadlistwork()
         self.listofworks, self.dictofworks=self.projecthandler.updatelist(self.actualprojectname, filter)
 
-    def stopcounter(self):
+    def stopcounter(self, modifier=''):
         modifiers = QtWidgets.QApplication.keyboardModifiers()
         self.configini = self.confighand.configreadout()
         runningfromini=self.configini.getboolean('RUN','isprojectrunning')
+        alwaysnotes=self.configini.getboolean('PRJ','alwaysnotes')
         if self.isprojectrunning!=runningfromini:
             self.feedback=("Mismatch execution of timer, aborting..")
             self.isprojectrunning = False
@@ -270,13 +277,13 @@ class Window(QWidget):
             notes=""
             end = datetime.now()
             ok=False
-            if modifiers == QtCore.Qt.ShiftModifier:
+            if modifiers == QtCore.Qt.ShiftModifier or modifier=='shift':
                 text, ok = QInputDialog().getText(self, "QInputDialog().getText()",
                                                   "Set manual time", QLineEdit.Normal,
                                                   datetime.strftime(end, self.format))
                 if ok and text:
                     end = datetime.strptime(text, self.format)
-            if modifiers == QtCore.Qt.ControlModifier:
+            if modifiers == QtCore.Qt.ControlModifier or modifier=='ctrl' or alwaysnotes==True:
                 text1, ok1 = QInputDialog().getText(self, "QInputDialog().getText()",
                                                   "Insert Notes", QLineEdit.Normal,
                                                   "")
@@ -415,28 +422,45 @@ class Window(QWidget):
 
                 # --- TBD percentage
                 try:
-                    percentage=self.dictofworks[name][self.projecthandler.columnEffectiveHour]/self.dictofworks[name][self.projecthandler.columnprevhour]
+                    percentage = (self.dictofworks[name][self.projecthandler.columnEffectiveHour] / \
+                                 self.dictofworks[name][self.projecthandler.columnprevhour])
+                    text=int(percentage*100)
+                    self.LineOreLavorate_PB[index].setStyleSheet('''
+                        QProgressBar {  background-color: white;
+                                        color: black;               /* Text color (not highlighted)
+                                        border: 2px solid white;      /* Border color */
+                                        border-radius: 5px;           /* Rounded border edges */
+                                        margin-left: 2px;
+                                        margin-right: 2px;           
+                                        text-align: center            /* Center the X% indicator */
+                                    }
+                        QProgressBar::chunk{background-color: #86ED26;width: 6px; margin: 0.5px}"
+                        ''')
                 except:
-                    percentage=0
+                    percentage = 0
                 try:
-                    a=int(percentage)*100
-                    if a>=100:
-                        percentage=1
+                    a=float(percentage)
+                    if a>=1:
+                        text=round(percentage*100)
+                        percentage=(( a % 1 ))   #Show only the exceeded time
                         self.LineOreLavorate_PB[index].setStyleSheet('''
-                            QProgressBar {  background-color: grey;
-                                            color: white;               /* Text color (not highlighted)
+                            QProgressBar {  background-color: white;
+                                            color: black;               /* Text color (not highlighted)
                                             border: 2px solid white;      /* Border color */
                                             border-radius: 5px;           /* Rounded border edges */
                                             margin-left: 2px;
                                             margin-right: 2px;           
                                             text-align: center            /* Center the X% indicator */
                                         }
-                            QProgressBar::chunk{background-color: red;width: 6px; margin: 0.5px}"
+                            QProgressBar::chunk{background-color: yellow;width: 6px; margin: 0.5px}"
                             ''')
                 except:
                     percentage=0
 
+
+
                 self.LineOreLavorate_PB[index].setValue(int(percentage*100))
+                self.LineOreLavorate_PB[index].setFormat(str(text)+"%")
                 self.LineOreLavorate[index].setText(
                     str(self.dictofworks[name][self.projecthandler.columnEffectiveHour]))
                 # --- TBD
@@ -655,6 +679,7 @@ class Window(QWidget):
             self.skiprow = int(self.configini['PRJ']['skiprow'])
             self.step = int(self.configini['PRJ']['stepminutes'])
             self.filterprj = str(self.configini['PRJ']['filterprojectby'])
+            self.alwaysnotes = self.configini.getboolean('PRJ', 'alwaysnotes')
             self.columnnamelist = []
             self.columnnamelist.append(str(self.configini['PRJ']['columncustomerprj']))
             self.columnnamelist.append(str(self.configini['PRJ']['columncustomer']))
@@ -671,12 +696,143 @@ class Window(QWidget):
             print(re)
             return False
 
-    def showstatistics(self):
+    def showstatistics(self, daily):
         modifiers = QtWidgets.QApplication.keyboardModifiers()
-        if modifiers == QtCore.Qt.ShiftModifier:
+        if daily:
             dailystat = statistics(self.pathprj,self.nameprj,True)  #TBD (placeholder : how many hours of work day by day)
+            if dailystat.exec_() == QtWidgets.QDialog.Accepted:
+                pass
+        else:
+            stats = statistics(self.pathprj,self.nameprj)
+            stats.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+            if stats.exec_() == QtWidgets.QDialog.Accepted:
+                self.pandashow(stats.data)
 
-        stats = statistics(self.pathprj,self.nameprj)
-        stats.setAttribute(QtCore.Qt.WA_DeleteOnClose)
-        if stats.exec_() == QtWidgets.QDialog.Accepted:
-            self.pandashow(stats.data)
+    def container(self, action):
+        if action == "open":
+            self.openprj()
+        if action == "stats":
+            self.showstatistics(False)
+        if action == "daily":
+            self.showstatistics(True)
+        if action == "modtime":
+            self.editstarttime()
+        if action == "settings":
+            self.settings()
+        if action == "update":
+            self.updateprj()
+        if action == "stop":
+            self.stopcounter('shift')
+        if action == "stopnotes":
+            self.stopcounter('ctrl')
+
+from PyQt5.QtWidgets import QMainWindow, QAction, qApp, QApplication
+from PyQt5.QtGui import QIcon
+
+class WKMenu(QMainWindow):
+
+    def __init__(self, container, panda=False):
+        super().__init__()
+
+        self.container=container
+        self.panda=panda
+        self.initUI()
+
+    def initUI(self):
+
+        exitAct = QAction(QIcon('exit.png'), '&Exit', self)
+        exitAct.setShortcut('Ctrl+Q')
+        exitAct.setStatusTip('Exit application')
+        exitAct.triggered.connect(qApp.quit)
+
+        self.statusBar()
+
+        menubar = self.menuBar()
+        menubar.setStyleSheet('''
+                QMenuBar {
+                    background-color:light grey
+                }''')
+        fileMenu = menubar.addMenu('&File')
+
+        exitAct.setShortcut('Ctrl+Q')
+        exitAct.setStatusTip('Exit application')
+
+        OpenAction = QAction("&Open..", self)
+        OpenAction.setShortcut("Ctrl+O")
+        OpenAction.setStatusTip('Open xls file')
+        OpenAction.triggered.connect(self.open)
+
+        UpdateAction = QAction("&Update from xls", self)
+        UpdateAction.setShortcut("Ctrl+U")
+        UpdateAction.setStatusTip('Update view from xls file')
+        UpdateAction.triggered.connect(self.update)
+
+        #Create File menu entry
+        fileMenu.addAction(OpenAction)
+        fileMenu.addAction(UpdateAction)
+        fileMenu.addSeparator()
+        fileMenu.addAction(exitAct)
+
+        #Create Tool menu entry
+        toolMenu = menubar.addMenu('&Tool')
+        if self.panda:
+            StatisticAction = QAction("&Statistic", self)
+            StatisticAction.setStatusTip('Open statistic interface')
+            StatisticAction.triggered.connect(self.statistic)
+
+        DailyAction = QAction("&Daily work", self)
+        DailyAction.setStatusTip('Open daily stats interface')
+        DailyAction.triggered.connect(self.daily)
+
+        modtimeAction = QAction("&Modify start time", self)
+        modtimeAction.setStatusTip('Modify last start time')
+        modtimeAction.triggered.connect(self.modtime)
+
+        stoptimeAction = QAction("&Stop with selection", self)
+        stoptimeAction.setStatusTip('Manual Stop Time')
+        stoptimeAction.triggered.connect(self.stoptime)
+
+        stoptimenoteAction = QAction("&Stop with notes", self)
+        stoptimenoteAction.setStatusTip('Stop and add note')
+        stoptimenoteAction.triggered.connect(self.stopnotestime)
+
+        settingsAction = QAction("&Settings", self)
+        settingsAction.setStatusTip('Open settings')
+        settingsAction.triggered.connect(self.settings)
+
+        #Create Tool menu entry
+        if self.panda:
+            toolMenu.addAction(StatisticAction)
+        toolMenu.addAction(DailyAction)
+        toolMenu.addSeparator()
+        toolMenu.addAction(modtimeAction)
+        toolMenu.addAction(stoptimeAction)
+        toolMenu.addAction(stoptimenoteAction)
+        toolMenu.addSeparator()
+        toolMenu.addAction(settingsAction)
+
+
+        self.setGeometry(300, 300, 300, 200)
+    def open(self):
+        self.container("open")
+
+    def statistic(self):
+        self.container("stats")
+
+    def daily(self):
+        self.container("daily")
+
+    def modtime(self):
+        self.container("modtime")
+
+    def settings(self):
+        self.container("settings")
+
+    def update(self):
+        self.container("update")
+
+    def stoptime(self):
+        self.container("stop")
+
+    def stopnotestime(self):
+        self.container("stopnotes")
