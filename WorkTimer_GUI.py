@@ -4,6 +4,10 @@
 # Application:  WorKTimer GUI
 # Version:      See WorkTimer.py
 #===============================================================================================================
+# TBD: add tool button (in place of stastitic button) with:
+# Daily effort (work hour)
+# Lists of TODOs
+
 
 from PyQt5 import QtWidgets, QtCore
 #from PyQt5.QtGui import QLinearGradient,QColor, QBrush, QPalette,QPainter, QPen
@@ -410,7 +414,10 @@ class Window(QWidget):
                 self.LinePreventivo[index].setText(str(self.dictofworks[name][self.projecthandler.columnCost]))
 
                 # --- TBD percentage
-                percentage=self.dictofworks[name][self.projecthandler.columnEffectiveHour]/self.dictofworks[name][self.projecthandler.columnprevhour]
+                try:
+                    percentage=self.dictofworks[name][self.projecthandler.columnEffectiveHour]/self.dictofworks[name][self.projecthandler.columnprevhour]
+                except:
+                    percentage=0
                 try:
                     a=int(percentage)*100
                     if a>=100:
@@ -665,6 +672,10 @@ class Window(QWidget):
             return False
 
     def showstatistics(self):
+        modifiers = QtWidgets.QApplication.keyboardModifiers()
+        if modifiers == QtCore.Qt.ShiftModifier:
+            dailystat = statistics(self.pathprj,self.nameprj,True)  #TBD (placeholder : how many hours of work day by day)
+
         stats = statistics(self.pathprj,self.nameprj)
         stats.setAttribute(QtCore.Qt.WA_DeleteOnClose)
         if stats.exec_() == QtWidgets.QDialog.Accepted:

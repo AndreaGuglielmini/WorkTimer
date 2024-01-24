@@ -256,7 +256,7 @@ class settings(QDialog):
 
 
 class statistics(QDialog):
-    def __init__(self, projectfolder,projectname="", parent=None):
+    def __init__(self, projectfolder,projectname="", daily=False, parent=None):
         super(statistics, self).__init__(parent)
         self.projectname=projectname
         self.projectfolder=projectfolder
