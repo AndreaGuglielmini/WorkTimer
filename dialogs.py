@@ -181,23 +181,63 @@ class settings(QDialog):
 
         row = row + 1
         self.listcolumn=';'
-        self.NameColumn  = QLabel('Column name (separate by ;)', self)
+        self.NameColumn  = QLabel('Company;Customer;Prj;Preventived hour;unit cost;cost;cost no tax;hour;status', self)
         self.NameColumn.setStyleSheet("border: 0px solid black")
         layout.addWidget(self.NameColumn, row, 0)
-        self.LineColumn = QLineEdit()
-        self.LineColumn.setText(self.listcolumn.join(self.columnname))
-        self.LineColumn.returnPressed.connect(self.changevalue)
-        self.LineColumn.textChanged.connect(self.changevalue)
-        layout.addWidget(self.LineColumn, row, 1)
 
         row = row + 1
-        self.NameColumnbtn  = QtWidgets.QPushButton('Show')
-        self.NameColumnbtn.clicked.connect(self.showm)
-        self.NameColumnbtn.setMaximumWidth(100)
-        layout.addWidget(self.NameColumnbtn, row, 1)
-        self.NameColumn  = QLabel('Required:', self)
-        self.NameColumn.setStyleSheet("border: 0px solid black")
-        layout.addWidget(self.NameColumn, row, 0)
+        self.LineColumn0 = QLineEdit()
+        self.LineColumn0.setText(self.columncustomerprj)
+        self.LineColumn0.textChanged.connect(self.changevalue)
+        layout.addWidget(self.LineColumn0, row, 1)
+
+        row = row + 1
+        self.LineColumn1 = QLineEdit()
+        self.LineColumn1.setText(self.columncustomer)
+        self.LineColumn1.textChanged.connect(self.changevalue)
+        layout.addWidget(self.LineColumn1, row, 1)
+
+        row = row + 1
+        self.LineColumn2 = QLineEdit()
+        self.LineColumn2.setText(self.columnboard)
+        self.LineColumn2.textChanged.connect(self.changevalue)
+        layout.addWidget(self.LineColumn2, row, 1)
+
+        row = row + 1
+        self.LineColumn3 = QLineEdit()
+        self.LineColumn3.setText(self.columnprevhour)
+        self.LineColumn3.textChanged.connect(self.changevalue)
+        layout.addWidget(self.LineColumn3, row, 1)
+
+        row = row + 1
+        self.LineColumn4 = QLineEdit()
+        self.LineColumn4.setText(self.columnunitcost)
+        self.LineColumn4.textChanged.connect(self.changevalue)
+        layout.addWidget(self.LineColumn4, row, 1)
+
+        row = row + 1
+        self.LineColumn5 = QLineEdit()
+        self.LineColumn5.setText(self.columncost)
+        self.LineColumn5.textChanged.connect(self.changevalue)
+        layout.addWidget(self.LineColumn5, row, 1)
+
+        row = row + 1
+        self.LineColumn6 = QLineEdit()
+        self.LineColumn6.setText(self.columncostnotax)
+        self.LineColumn6.textChanged.connect(self.changevalue)
+        layout.addWidget(self.LineColumn6, row, 1)
+
+        row = row + 1
+        self.LineColumn7 = QLineEdit()
+        self.LineColumn7.setText(self.columneffectivehour)
+        self.LineColumn7.textChanged.connect(self.changevalue)
+        layout.addWidget(self.LineColumn7, row, 1)
+
+        row = row + 1
+        self.LineColumn8 = QLineEdit()
+        self.LineColumn8.setText(self.columnstatus)
+        self.LineColumn8.textChanged.connect(self.changevalue)
+        layout.addWidget(self.LineColumn8, row, 1)
 
         row = row + 1
         self.AlwaysNotesbtn  = QtWidgets.QCheckBox()
@@ -225,19 +265,32 @@ class settings(QDialog):
             self.minutes=self.configini['PRJ']['stepminutes']
             self.filter=self.configini['PRJ']['filterprojectby']
             self.alwaysnotes=self.configini.getboolean('PRJ','alwaysnotes')
-            self.columnname=[]
-            self.columnname.append(str(self.configini['PRJ']['columncustomerprj']))
-            self.columnname.append(str(self.configini['PRJ']['columncustomer']))
-            self.columnname.append(str(self.configini['PRJ']['columnboard']))
-            self.columnname.append(str(self.configini['PRJ']['columnprevhour']))
-            self.columnname.append(str(self.configini['PRJ']['columnunitcost']))
-            self.columnname.append(str(self.configini['PRJ']['columncost']))
-            self.columnname.append(str(self.configini['PRJ']['columncostnotax']))
-            self.columnname.append(str(self.configini['PRJ']['columneffectivehour']))
-            self.columnname.append(str(self.configini['PRJ']['columnstatus']))
+            self.columncustomerprj=(str(self.configini['PRJ']['columncustomerprj']))
+            self.columncustomer=(str(self.configini['PRJ']['columncustomer']))
+            self.columnboard=(str(self.configini['PRJ']['columnboard']))
+            self.columnprevhour=(str(self.configini['PRJ']['columnprevhour']))
+            self.columnunitcost=(str(self.configini['PRJ']['columnunitcost']))
+            self.columncost=(str(self.configini['PRJ']['columncost']))
+            self.columncostnotax=(str(self.configini['PRJ']['columncostnotax']))
+            self.columneffectivehour=(str(self.configini['PRJ']['columneffectivehour']))
+            self.columnstatus=(str(self.configini['PRJ']['columnstatus']))
         except Exception as re:
             messageshow("Error loading .ini file. Re-install application or check\n"+str(re),"ok")
-            sys.exit()
+            self.sheetname=""
+            self.skiprow=""
+            self.minutes=""
+            self.filter=""
+            self.alwaysnotes=False
+            self.columncustomerprj=""
+            self.columncustomer=""
+            self.columnboard=""
+            self.columnprevhour=""
+            self.columnunitcost=""
+            self.columncost=""
+            self.columncostnotax=""
+            self.columneffectivehour=""
+            self.columnstatus=""
+
 
 
     def changevalue(self):
@@ -250,16 +303,15 @@ class settings(QDialog):
                 self.configini['PRJ']['alwaysnotes'] = 'True'
             else:
                 self.configini['PRJ']['alwaysnotes'] = 'False'
-            self.columnname=self.LineColumn.text().split(self.listcolumn)
-            self.configini['PRJ']['columncustomerprj']=self.columnname[0]
-            self.configini['PRJ']['columncustomer']=self.columnname[1]
-            self.configini['PRJ']['columnboard']=self.columnname[2]
-            self.configini['PRJ']['columnprevhour']=self.columnname[3]
-            self.configini['PRJ']['columnunitcost']=self.columnname[4]
-            self.configini['PRJ']['columncost']=self.columnname[5]
-            self.configini['PRJ']['columncostnotax']=self.columnname[6]
-            self.configini['PRJ']['columneffectivehour']=self.columnname[7]
-            self.configini['PRJ']['columnstatus']=self.columnname[8]
+            self.configini['PRJ']['columncustomerprj']=self.LineColumn0.text()
+            self.configini['PRJ']['columncustomer']=self.LineColumn1.text()
+            self.configini['PRJ']['columnboard']=self.LineColumn2.text()
+            self.configini['PRJ']['columnprevhour']=self.LineColumn3.text()
+            self.configini['PRJ']['columnunitcost']=self.LineColumn4.text()
+            self.configini['PRJ']['columncost']=self.LineColumn5.text()
+            self.configini['PRJ']['columncostnotax']=self.LineColumn6.text()
+            self.configini['PRJ']['columneffectivehour']=self.LineColumn7.text()
+            self.configini['PRJ']['columnstatus']=self.LineColumn8.text()
 
         except Exception as re:
             print('Error loading ini file --> ', re)

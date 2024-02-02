@@ -37,6 +37,7 @@ class Window(QWidget):
         self.version = version
         self.feedback=feedback
         self.pandashow=pandashow
+        self.skipload = False
 
         #Read data from config ini
         try:
@@ -46,24 +47,31 @@ class Window(QWidget):
         except:
             load=False
         if not load:
-                self.settings(True)
+            self.skipload=True
+
+        if not self.skipload:
+            self.loadtheprj(project, feedback)
+
+            if self.isprojectrunning:
+                self.actualprojectruntime = self.configini['RUN']['actualprojectruntime']
+                self.actualprojectname = str(self.configini['RUN']['actualprojectname'])
+            else:
+                self.actualprojectname = ""
+                self.actualprojectruntime=0
+                self.isprojectrunning=False
+
+            self.updatelist()
 
 
-        self.loadtheprj(project, feedback)
-
-        if self.isprojectrunning:
-            self.actualprojectruntime = self.configini['RUN']['actualprojectruntime']
-            self.actualprojectname = str(self.configini['RUN']['actualprojectname'])
+            self.nameprj = os.path.basename(project)
+            self.pathprj=os.path.split(project)[0]
         else:
-            self.actualprojectname = ""
-            self.actualprojectruntime=0
+            self.columnnamelist=["","","","","","","","",""]
+            self.HeadersColumn=["","","","","","","","",""]
+            self.nameprj=""
+            self.listofworks=[]
             self.isprojectrunning=False
 
-        self.updatelist()
-
-
-        self.nameprj = os.path.basename(project)
-        self.pathprj=os.path.split(project)[0]
 
         self.format = '%y/%m/%d, %H:%M:%S'
 
@@ -358,6 +366,12 @@ class Window(QWidget):
         filename = QFileDialog.getOpenFileName()
 
         if filename != "":
+            if self.skipload:
+                try:
+                    self.settings(True)
+                except Exception as re:
+                    self.feedback("Error Loading settings"+str(re), "ok")
+                    return None
             self.project=filename[0]
             self.configini['PRJ']['acutalproject']=filename[0]
             self.confighand.writevalue(self.configini)
@@ -366,7 +380,12 @@ class Window(QWidget):
             return None
 
     def updateprj(self):
-        self.projecthandler.read_excel(self.sheet)
+        try:
+            self.projecthandler.read_excel(self.sheet)
+        except:
+            self.projecthandler = work_project(self.project, self.feedback, self.sheet, self.columnnamelist, self.skiprow)
+            self.actualprojectname=""
+            self.projecthandler.read_excel(self.sheet)
         self.updatelist()
 
         self.updateGUI()
@@ -627,7 +646,7 @@ class Window(QWidget):
         f.close()
 
     def settings(self, reconfigure=False):
-        from dialogs import settings
+
 
         self.configini = self.confighand.configreadout()
         setup=settings(self.configini)

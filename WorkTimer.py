@@ -6,7 +6,7 @@
 #===============================================================================================================
 
 import sys, os
-version="0.9.4"
+version="0.9.5"
 myappid = 'AndreaGuglielmini.WorkTimer.GUI'+version # arbitrary string
 
 import ctypes
@@ -16,6 +16,7 @@ ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
 from PyQt5.QtWidgets import *
 from PyQt5.QtWidgets import QMessageBox,QFileDialog
 from confighandler import *
+from os.path import exists
 
 def messageshow(text, style="std", title="Information"):
     msg = QMessageBox()
@@ -48,7 +49,7 @@ if __name__ == "__main__":
     app = QApplication(sys.argv)
     print("###### WORK TIMER ########")
     print("Ver ", version)
-
+    inivalid = False
     # sanity check
     if not os.path.isfile(configfile):
         if not os.path.isfile(configfilewrp):
@@ -60,14 +61,30 @@ if __name__ == "__main__":
                 print("Writing: ", filename[0])
                 f.close
                 configfile=(filename[0])
+                inivalid = True
             else:
                 messageshow("No valid config.ini file", "ok")
-                sys.exit()
+                inivalid = False
         else:
             f=open(configfilewrp,"r")
             configfile=f.read()
             print(configfile)
+            if exists(configfile):
+                inivalid=True
+            else:
+                inivalid=False
+    else:
+        inivalid=True
 
+    if not inivalid:
+        print("Loading def .ini")
+        import shutil
+
+        shutil.copy2('config_def.ini', 'config.ini')  # complete target filename given
+        try:
+            os.remove(configfilewrp)
+        except:
+            pass
 
     try:
         confighand=confighandler(configfile)
@@ -86,7 +103,7 @@ if __name__ == "__main__":
     else:
         pass
 
-    from os.path import exists
+
 
     if project == "":
         print("No project active")
