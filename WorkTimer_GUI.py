@@ -4,11 +4,9 @@
 # Application:  WorKTimer GUI
 # Version:      See WorkTimer.py
 #===============================================================================================================
-# TBD: add tool button (in place of stastitic button) with:
-# Daily effort (work hour)
-# Lists of TODOs
-# TBD: percentage over 100 management
-
+# Daily effort fix visualization errors
+# Settings menu better implementation
+# Wizard for setup
 
 from PyQt5 import QtWidgets, QtCore
 
@@ -217,7 +215,16 @@ class Window(QWidget):
         self.PageText.setStyleSheet("border: 0px solid black")
         self.layout.addWidget(self.PageText, menurow, self.column8)
 
+        self.timer = QtCore.QTimer(self)
+        self.timer.timeout.connect(self.Time)
+        self.timer.start(0)
+
+
+    def Time(self):
+        print("updating")
+        self.timer.start(60000)
         self.updateGUI()
+
 
     def openprj_btn(self):
         self.loadtheprj("", self.feedback)

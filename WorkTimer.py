@@ -120,5 +120,4 @@ if __name__ == "__main__":
     from WorkTimer_GUI import Window
     screen = Window(version, project, messageshow,confighand,pandashow)
     screen.show()
-
     sys.exit(app.exec_())
