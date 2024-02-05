@@ -734,6 +734,43 @@ class Window(QWidget):
             if stats.exec_() == QtWidgets.QDialog.Accepted:
                 self.pandashow(stats.data)
 
+    def wizard(self, reconfigure=False):
+        from dialogs import MagicWizard
+        self.configini = self.confighand.configreadout()
+        wizard = MagicWizard(self.configini)
+        wizard.setAttribute(QtCore.Qt.WA_DeleteOnClose)
+        #wizard.show()
+        ini=wizard.exec_()
+        while ini != QtWidgets.QDialog.Accepted:
+            self.configini = ini
+            if self.configini is None:
+                ret=self.feedback("Error on .ini file occurred, please re-install ini file and reload. Exit?")
+                if ret:
+                    sys.exit()
+
+        try:
+            self.sheet = self.configini['PRJ']['sheet']
+            self.skiprow = int(self.configini['PRJ']['skiprow'])
+            self.step = int(self.configini['PRJ']['stepminutes'])
+            self.filterprj=str(self.configini['PRJ']['filterprojectby'])
+            self.columnnamelist=[]
+            self.columnnamelist.append(str(self.configini['PRJ']['columncustomerprj']))
+            self.columnnamelist.append(str(self.configini['PRJ']['columncustomer']))
+            self.columnnamelist.append(str(self.configini['PRJ']['columnboard']))
+            self.columnnamelist.append(str(self.configini['PRJ']['columnprevhour']))
+            self.columnnamelist.append(str(self.configini['PRJ']['columnUnitCost']))
+            self.columnnamelist.append(str(self.configini['PRJ']['columnCost']))
+            self.columnnamelist.append(str(self.configini['PRJ']['columnCostNoTax']))
+            self.columnnamelist.append(str(self.configini['PRJ']['columnEffectiveHour']))
+            self.columnnamelist.append(str(self.configini['PRJ']['columnStatus']))
+            self.confighand.writevalue(self.configini)
+        except Exception as re:
+            self.feedback("Error loading ini, aborting. ", re)
+            sys.exit()
+        if not reconfigure:
+            self.updateprj()
+
+
     def container(self, action):
         if action == "open":
             self.openprj()
@@ -745,6 +782,8 @@ class Window(QWidget):
             self.editstarttime()
         if action == "settings":
             self.settings()
+        if action == "wizard":
+            self.wizard()
         if action == "update":
             self.updateprj()
         if action == "stop":
@@ -822,9 +861,13 @@ class WKMenu(QMainWindow):
         stoptimenoteAction.setStatusTip('Stop and add note')
         stoptimenoteAction.triggered.connect(self.stopnotestime)
 
-        settingsAction = QAction("&Settings", self)
+        settingsAction = QAction("&Settings (dismissed)", self)
         settingsAction.setStatusTip('Open settings')
         settingsAction.triggered.connect(self.settings)
+
+        wizardAction = QAction("&Settings Wizard", self)
+        wizardAction.setStatusTip('Open settings wizard')
+        wizardAction.triggered.connect(self.wizard)
 
         #Create Tool menu entry
         if self.panda:
@@ -836,6 +879,7 @@ class WKMenu(QMainWindow):
         toolMenu.addAction(stoptimenoteAction)
         toolMenu.addSeparator()
         toolMenu.addAction(settingsAction)
+        toolMenu.addAction(wizardAction)
 
 
         self.setGeometry(300, 300, 300, 200)
@@ -853,6 +897,9 @@ class WKMenu(QMainWindow):
 
     def settings(self):
         self.container("settings")
+
+    def wizard(self):
+        self.container("wizard")
 
     def update(self):
         self.container("update")

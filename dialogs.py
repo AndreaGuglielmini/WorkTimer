@@ -478,3 +478,273 @@ class statistics(QDialog):
         self.accept()
         return True
 
+from PyQt5 import QtCore, QtWidgets
+
+class MagicWizard(QtWidgets.QWizard):
+    def __init__(self, configini, parent=None):
+        super(MagicWizard, self).__init__(parent)
+        self.addPage(Page1(self))
+        self.addPage(Page2(configini))
+        self.addPage(Page3(configini))
+        self.setWindowTitle("WorkTimer Setting Wizard")
+        self.resize(640,480)
+
+class Page1(QtWidgets.QWizardPage):
+    def __init__(self, parent=None):
+        super(Page1, self).__init__(parent)
+        layout = QtWidgets.QVBoxLayout()
+        self.box=QTextEdit()
+        layout.addWidget(self.box)
+        self.setLayout(layout)
+        self.box.setStyleSheet("color: grey; background-color: light grey; border-width: 4px; font: 20px");
+        self.box.setEnabled(False)
+        self.box.setText(("Welcome to WorkTimer settings wizard. This will setup the application referring to your "
+                          "excel file.\n\n\n"
+                          "You need a preformatted Excel, see Exampleproject.xlsx into installation folder.\n\n"
+                          "Click next to start.."))
+
+
+class Page2(QtWidgets.QWizardPage):
+    def __init__(self, configini,parent=None):
+        super(Page2, self).__init__(parent)
+        layout = QtWidgets.QGridLayout(self)
+        self.configini=configini
+
+        self.loadini()
+
+        self.box=QTextEdit()
+        layout.addWidget(self.box)
+        self.setLayout(layout)
+        self.box.setStyleSheet("color: grey; background-color: light grey; border-width: 4px; font: 12px");
+        self.box.setEnabled(False)
+        self.box.setText(("Insert sheet name containing data table and number of row to skip (first row with column name.\n"
+                          "Insert minimum working slot time.\n"
+                          "Insert filter value"))
+        self.box.setMaximumHeight(80)
+
+        row = 1
+        self.NameSheet = QLabel('Name of sheet with data', self)
+        self.NameSheet.setStyleSheet("border: 0px solid black")
+        layout.addWidget(self.NameSheet, row, 0)
+        self.LineSheetName = QLineEdit()
+        self.LineSheetName.setText(self.sheetname)
+        self.LineSheetName.textChanged.connect(self.changevalue)
+        layout.addWidget(self.LineSheetName, row, 1)
+
+        row = row + 1
+        self.NameSkipRow  = QLabel('Number of row to skip (First row must contain the column headers)', self)
+        self.NameSkipRow.setStyleSheet("border: 0px solid black")
+        layout.addWidget(self.NameSkipRow, row, 0)
+        self.LineSkipRow = QLineEdit()
+        self.LineSkipRow.setText(self.skiprow)
+        self.LineSkipRow.textChanged.connect(self.changevalue)
+        layout.addWidget(self.LineSkipRow, row, 1)
+
+        row = row + 1
+        self.NameStepMinutes  = QLabel('Minimum slot time of work (minutes)', self)
+        self.NameStepMinutes.setStyleSheet("border: 0px solid black")
+        layout.addWidget(self.NameStepMinutes, row, 0)
+        self.LineStepMinutes = QLineEdit()
+        self.LineStepMinutes.setText(self.minutes)
+        self.LineStepMinutes.textChanged.connect(self.changevalue)
+        layout.addWidget(self.LineStepMinutes, row, 1)
+
+        row = row + 1
+        self.NameFilter  = QLabel('Filter Active project by this field', self)
+        self.NameFilter.setStyleSheet("border: 0px solid black")
+        layout.addWidget(self.NameFilter, row, 0)
+        self.LineFilter = QLineEdit()
+        self.LineFilter.setText(self.filter)
+        self.LineFilter.textChanged.connect(self.changevalue)
+        layout.addWidget(self.LineFilter, row, 1)
+
+    def loadini(self):
+        try:
+            self.sheetname=self.configini['PRJ']['sheet']
+            self.skiprow=self.configini['PRJ']['skiprow']
+            self.minutes=self.configini['PRJ']['stepminutes']
+            self.filter=self.configini['PRJ']['filterprojectby']
+        except Exception as re:
+            messageshow("Error loading .ini file. Re-install application or check\n"+str(re),"ok")
+            self.sheetname=""
+            self.skiprow=""
+            self.minutes=""
+            self.filter=""
+
+    def changevalue(self):
+        try:
+            self.configini['PRJ']['sheet']=self.LineSheetName.text()
+            self.configini['PRJ']['skiprow']=self.LineSkipRow.text()
+            self.configini['PRJ']['stepminutes']=self.LineStepMinutes.text()
+            self.configini['PRJ']['filterprojectby']=self.LineFilter.text()
+
+
+        except Exception as re:
+            print('Error loading ini file --> ', re)
+            self.accept()
+            return None
+
+class Page3(QtWidgets.QWizardPage):
+    def __init__(self, configini,parent=None):
+        super(Page3, self).__init__(parent)
+        layout = QtWidgets.QGridLayout(self)
+        self.configini=configini
+        self.loadini()
+        self.box=QTextEdit()
+        #layout.addWidget(self.box)
+        self.setLayout(layout)
+        self.qlabeltitle = QLabel()
+        self.qlabeltitle.setStyleSheet("border-width: 4px; font: 12px");
+        self.qlabeltitle.setText(("Insert name of columns accordlying with your excel"))
+
+        self.qlabeltitle1 = QLabel()
+        self.qlabeltitle1.setStyleSheet("border-width: 4px; font: 12px");
+        self.qlabeltitle1.setText(("Required field are:\n"))
+
+        layout.addWidget(self.qlabeltitle1, 1, 0, 1, 1)
+        layout.addWidget(self.qlabeltitle, 0, 0)
+
+        row = 2
+        self.LineColumn0 = QLineEdit()
+        self.LineColumn0.setText(self.columncustomerprj)
+        self.LineColumn0.textChanged.connect(self.changevalue)
+        layout.addWidget(self.LineColumn0, row, 1)
+        self.qlabel0=QLabel()
+        self.qlabel0.setText("-> Company name : Use it for identify the main contractor")
+        layout.addWidget(self.qlabel0, row, 0)
+
+        row = row + 1
+        self.LineColumn1 = QLineEdit()
+        self.LineColumn1.setText(self.columncustomer)
+        self.LineColumn1.textChanged.connect(self.changevalue)
+        layout.addWidget(self.LineColumn1, row, 1)
+        self.qlabel1=QLabel()
+        self.qlabel1.setText("-> Customer name : Use it for identify final customer")
+        layout.addWidget(self.qlabel1, row, 0)
+
+        row = row + 1
+        self.LineColumn2 = QLineEdit()
+        self.LineColumn2.setText(self.columnboard)
+        self.LineColumn2.textChanged.connect(self.changevalue)
+        layout.addWidget(self.LineColumn2, row, 1)
+        self.qlabel2=QLabel()
+        self.qlabel2.setText("-> Project name: unique Identify the project. Will be use for data collection")
+        layout.addWidget(self.qlabel2, row, 0)
+
+        row = row + 1
+        self.LineColumn3 = QLineEdit()
+        self.LineColumn3.setText(self.columnprevhour)
+        self.LineColumn3.textChanged.connect(self.changevalue)
+        layout.addWidget(self.LineColumn3, row, 1)
+        self.qlabel3=QLabel()
+        self.qlabel3.setText("-> Estimated hour of work: provisional")
+        layout.addWidget(self.qlabel3, row, 0)
+
+        row = row + 1
+        self.LineColumn4 = QLineEdit()
+        self.LineColumn4.setText(self.columnunitcost)
+        self.LineColumn4.textChanged.connect(self.changevalue)
+        layout.addWidget(self.LineColumn4, row, 1)
+        self.qlabel4=QLabel()
+        self.qlabel4.setText("-> Unit cost: cost for hour")
+        layout.addWidget(self.qlabel4, row, 0)
+
+        row = row + 1
+        self.LineColumn5 = QLineEdit()
+        self.LineColumn5.setText(self.columncost)
+        self.LineColumn5.textChanged.connect(self.changevalue)
+        layout.addWidget(self.LineColumn5, row, 1)
+        self.qlabel5=QLabel()
+        self.qlabel5.setText("-> Cost: Cost * Estimated")
+        layout.addWidget(self.qlabel5, row, 0)
+
+        row = row + 1
+        self.LineColumn6 = QLineEdit()
+        self.LineColumn6.setText(self.columncostnotax)
+        self.LineColumn6.textChanged.connect(self.changevalue)
+        layout.addWidget(self.LineColumn6, row, 1)
+        self.qlabel6=QLabel()
+        self.qlabel6.setText("-> Cost no tax: used for calculate effective cost")
+        layout.addWidget(self.qlabel6, row, 0)
+
+        row = row + 1
+        self.LineColumn7 = QLineEdit()
+        self.LineColumn7.setText(self.columneffectivehour)
+        self.LineColumn7.textChanged.connect(self.changevalue)
+        layout.addWidget(self.LineColumn7, row, 1)
+        self.qlabel7=QLabel()
+        self.qlabel7.setText("-> Hour: Effective hour of work, this field will be updated by application")
+        layout.addWidget(self.qlabel7, row, 0)
+
+        row = row + 1
+        self.LineColumn8 = QLineEdit()
+        self.LineColumn8.setText(self.columnstatus)
+        self.LineColumn8.textChanged.connect(self.changevalue)
+        layout.addWidget(self.LineColumn8, row, 1)
+        self.qlabel8=QLabel()
+        self.qlabel8.setText("-> Status: status of project. Used colum for filter")
+        layout.addWidget(self.qlabel8, row, 0)
+
+
+
+    def loadini(self):
+        try:
+            self.sheetname = self.configini['PRJ']['sheet']
+            self.skiprow = self.configini['PRJ']['skiprow']
+            self.minutes = self.configini['PRJ']['stepminutes']
+            self.filter = self.configini['PRJ']['filterprojectby']
+            self.alwaysnotes = self.configini.getboolean('PRJ', 'alwaysnotes')
+            self.columncustomerprj = (str(self.configini['PRJ']['columncustomerprj']))
+            self.columncustomer = (str(self.configini['PRJ']['columncustomer']))
+            self.columnboard = (str(self.configini['PRJ']['columnboard']))
+            self.columnprevhour = (str(self.configini['PRJ']['columnprevhour']))
+            self.columnunitcost = (str(self.configini['PRJ']['columnunitcost']))
+            self.columncost = (str(self.configini['PRJ']['columncost']))
+            self.columncostnotax = (str(self.configini['PRJ']['columncostnotax']))
+            self.columneffectivehour = (str(self.configini['PRJ']['columneffectivehour']))
+            self.columnstatus = (str(self.configini['PRJ']['columnstatus']))
+        except Exception as re:
+            messageshow("Error loading .ini file. Re-install application or check\n" + str(re), "ok")
+            self.sheetname = ""
+            self.skiprow = ""
+            self.minutes = ""
+            self.filter = ""
+            self.alwaysnotes = False
+            self.columncustomerprj = ""
+            self.columncustomer = ""
+            self.columnboard = ""
+            self.columnprevhour = ""
+            self.columnunitcost = ""
+            self.columncost = ""
+            self.columncostnotax = ""
+            self.columneffectivehour = ""
+            self.columnstatus = ""
+
+    def changevalue(self):
+        try:
+            self.configini['PRJ']['sheet'] = self.LineSheetName.text()
+            self.configini['PRJ']['skiprow'] = self.LineSkipRow.text()
+            self.configini['PRJ']['stepminutes'] = self.LineStepMinutes.text()
+            self.configini['PRJ']['filterprojectby'] = self.LineFilter.text()
+            if self.AlwaysNotesbtn.isChecked():
+                self.configini['PRJ']['alwaysnotes'] = 'True'
+            else:
+                self.configini['PRJ']['alwaysnotes'] = 'False'
+            self.configini['PRJ']['columncustomerprj'] = self.LineColumn0.text()
+            self.configini['PRJ']['columncustomer'] = self.LineColumn1.text()
+            self.configini['PRJ']['columnboard'] = self.LineColumn2.text()
+            self.configini['PRJ']['columnprevhour'] = self.LineColumn3.text()
+            self.configini['PRJ']['columnunitcost'] = self.LineColumn4.text()
+            self.configini['PRJ']['columncost'] = self.LineColumn5.text()
+            self.configini['PRJ']['columncostnotax'] = self.LineColumn6.text()
+            self.configini['PRJ']['columneffectivehour'] = self.LineColumn7.text()
+            self.configini['PRJ']['columnstatus'] = self.LineColumn8.text()
+
+        except Exception as re:
+            print('Error loading ini file --> ', re)
+            self.accept()
+            return None
+
+
+    def returnOK(self):
+        self.accept()
