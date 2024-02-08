@@ -481,11 +481,11 @@ class statistics(QDialog):
 from PyQt5 import QtCore, QtWidgets
 
 class MagicWizard(QtWidgets.QWizard):
-    def __init__(self, configini, parent=None):
+    def __init__(self, configini,listerr=[], parent=None):
         super(MagicWizard, self).__init__(parent)
         self.addPage(Page1(self))
         self.addPage(Page2(configini))
-        self.addPage(Page3(configini))
+        self.addPage(Page3(configini,listerr))
         self.setWindowTitle("WorkTimer Setting Wizard")
         self.resize(640,480)
         self.configini=configini
@@ -530,6 +530,16 @@ class Page2(QtWidgets.QWizardPage):
         self.box.setMaximumHeight(80)
 
         row = 1
+
+        self.NamePrj = QLabel('Path of Excel table file', self)
+        self.NamePrj.setStyleSheet("border: 0px solid black")
+        layout.addWidget(self.NamePrj, row, 0)
+        self.PRJSheetName = QLineEdit()
+        self.PRJSheetName.setText(self.projectname)
+        self.PRJSheetName.textChanged.connect(self.changevalue)
+        layout.addWidget(self.PRJSheetName, row, 1)
+
+        row = row + 1
         self.NameSheet = QLabel('Name of sheet with data', self)
         self.NameSheet.setStyleSheet("border: 0px solid black")
         layout.addWidget(self.NameSheet, row, 0)
@@ -567,6 +577,7 @@ class Page2(QtWidgets.QWizardPage):
 
     def loadini(self):
         try:
+            self.projectname = self.configini['PRJ']['acutalproject']
             self.sheetname=self.configini['PRJ']['sheet']
             self.skiprow=self.configini['PRJ']['skiprow']
             self.minutes=self.configini['PRJ']['stepminutes']
@@ -580,6 +591,8 @@ class Page2(QtWidgets.QWizardPage):
 
     def changevalue(self):
         try:
+            self.projectname = self.configini['PRJ']['acutalproject']
+            self.configini['PRJ']['acutalproject'] = self.PRJSheetName.text()
             self.configini['PRJ']['sheet']=self.LineSheetName.text()
             self.configini['PRJ']['skiprow']=self.LineSkipRow.text()
             self.configini['PRJ']['stepminutes']=self.LineStepMinutes.text()
@@ -591,7 +604,7 @@ class Page2(QtWidgets.QWizardPage):
             return None
 
 class Page3(QtWidgets.QWizardPage):
-    def __init__(self, configini,parent=None):
+    def __init__(self, configini,columnerr=[],parent=None):
         super(Page3, self).__init__(parent)
         layout = QtWidgets.QGridLayout(self)
         self.configini=configini
@@ -614,6 +627,8 @@ class Page3(QtWidgets.QWizardPage):
         self.LineColumn0 = QLineEdit()
         self.LineColumn0.setText(self.columncustomerprj)
         self.LineColumn0.textChanged.connect(self.changevalue)
+        if row-2 in columnerr:
+            self.LineColumn0.setStyleSheet("background-color:red")
         layout.addWidget(self.LineColumn0, row, 1)
         self.qlabel0=QLabel()
         self.qlabel0.setText("-> Company name : Use it for identify the main contractor")
@@ -623,6 +638,8 @@ class Page3(QtWidgets.QWizardPage):
         self.LineColumn1 = QLineEdit()
         self.LineColumn1.setText(self.columncustomer)
         self.LineColumn1.textChanged.connect(self.changevalue)
+        if row-2 in columnerr:
+            self.LineColumn1.setStyleSheet("background-color:red")
         layout.addWidget(self.LineColumn1, row, 1)
         self.qlabel1=QLabel()
         self.qlabel1.setText("-> Customer name : Use it for identify final customer")
@@ -632,6 +649,8 @@ class Page3(QtWidgets.QWizardPage):
         self.LineColumn2 = QLineEdit()
         self.LineColumn2.setText(self.columnboard)
         self.LineColumn2.textChanged.connect(self.changevalue)
+        if row-2 in columnerr:
+            self.LineColumn2.setStyleSheet("background-color:red")
         layout.addWidget(self.LineColumn2, row, 1)
         self.qlabel2=QLabel()
         self.qlabel2.setText("-> Project name: unique Identify the project. Will be use for data collection")
@@ -641,6 +660,8 @@ class Page3(QtWidgets.QWizardPage):
         self.LineColumn3 = QLineEdit()
         self.LineColumn3.setText(self.columnprevhour)
         self.LineColumn3.textChanged.connect(self.changevalue)
+        if row-2 in columnerr:
+            self.LineColumn3.setStyleSheet("background-color:red")
         layout.addWidget(self.LineColumn3, row, 1)
         self.qlabel3=QLabel()
         self.qlabel3.setText("-> Estimated hour of work: provisional")
@@ -650,6 +671,8 @@ class Page3(QtWidgets.QWizardPage):
         self.LineColumn4 = QLineEdit()
         self.LineColumn4.setText(self.columnunitcost)
         self.LineColumn4.textChanged.connect(self.changevalue)
+        if row-2 in columnerr:
+            self.LineColumn4.setStyleSheet("background-color:red")
         layout.addWidget(self.LineColumn4, row, 1)
         self.qlabel4=QLabel()
         self.qlabel4.setText("-> Unit cost: cost for hour")
@@ -659,6 +682,8 @@ class Page3(QtWidgets.QWizardPage):
         self.LineColumn5 = QLineEdit()
         self.LineColumn5.setText(self.columncost)
         self.LineColumn5.textChanged.connect(self.changevalue)
+        if row-2 in columnerr:
+            self.LineColumn5.setStyleSheet("background-color:red")
         layout.addWidget(self.LineColumn5, row, 1)
         self.qlabel5=QLabel()
         self.qlabel5.setText("-> Cost: Cost * Estimated")
@@ -668,6 +693,8 @@ class Page3(QtWidgets.QWizardPage):
         self.LineColumn6 = QLineEdit()
         self.LineColumn6.setText(self.columncostnotax)
         self.LineColumn6.textChanged.connect(self.changevalue)
+        if row-2 in columnerr:
+            self.LineColumn6.setStyleSheet("background-color:red")
         layout.addWidget(self.LineColumn6, row, 1)
         self.qlabel6=QLabel()
         self.qlabel6.setText("-> Cost no tax: used for calculate effective cost")
@@ -677,6 +704,8 @@ class Page3(QtWidgets.QWizardPage):
         self.LineColumn7 = QLineEdit()
         self.LineColumn7.setText(self.columneffectivehour)
         self.LineColumn7.textChanged.connect(self.changevalue)
+        if row-2 in columnerr:
+            self.LineColumn7.setStyleSheet("background-color:red;color:white")
         layout.addWidget(self.LineColumn7, row, 1)
         self.qlabel7=QLabel()
         self.qlabel7.setText("-> Hour: Effective hour of work, this field will be updated by application")
@@ -686,6 +715,8 @@ class Page3(QtWidgets.QWizardPage):
         self.LineColumn8 = QLineEdit()
         self.LineColumn8.setText(self.columnstatus)
         self.LineColumn8.textChanged.connect(self.changevalue)
+        if row-2 in columnerr:
+            self.LineColumn8.setStyleSheet("background-color:red")
         layout.addWidget(self.LineColumn8, row, 1)
         self.qlabel8=QLabel()
         self.qlabel8.setText("-> Status: status of project. Used colum for filter")
@@ -695,6 +726,7 @@ class Page3(QtWidgets.QWizardPage):
 
     def loadini(self):
         try:
+            self.projectname = self.configini['PRJ']['acutalproject']
             self.sheetname = self.configini['PRJ']['sheet']
             self.skiprow = self.configini['PRJ']['skiprow']
             self.minutes = self.configini['PRJ']['stepminutes']

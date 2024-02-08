@@ -31,7 +31,7 @@ class work_project:
 
         # read Excel file
         self.read_excel(sheet)
-        self.ret=self.setcolumn(columnnamelist)
+        self.ret, self.colmnerr=self.setcolumn(columnnamelist)
         if self.ret is None:
             return None
         self.loadlistwork()
@@ -91,6 +91,8 @@ class work_project:
 
     def setcolumn(self,columnnamelist):
         usedcolumn=[]
+        self.columncustomerprj=self.columncustomer=self.columnboard=self.columnprevhour=self.columnCost=-1
+        self.columnCostNoTax=self.columnEffectiveHour=self.columnStatus=-1
         for item in columnnamelist:
             for idx in range(0,len(self.cat_header)):
                 if item == self.cat_header[idx]:
@@ -122,11 +124,28 @@ class work_project:
                         usedcolumn.append(item)
         # The usedcolumn.append(item) is a workaround for handle the list of columns headers (TBD)
         print(columnnamelist)
-        try:
-            print(self.columncustomerprj,self.columncustomer,self.columnboard,self.columnStatus, self.columnCost)
-            return usedcolumn
-        except:
-            return None
+        listerr=[]
+        if self.columncustomerprj==-1:
+            listerr.append(0)
+        if self.columncustomer == -1:
+            listerr.append(1)
+        if self.columnboard == -1:
+            listerr.append(2)
+        if self.columnprevhour == -1:
+            listerr.append(3)
+        if self.columnCost == -1:
+            listerr.append(5)
+        if self.columnCostNoTax == -1:
+            listerr.append(6)
+        if self.columnEffectiveHour == -1:
+            listerr.append(7)
+        if self.columnStatus == -1:
+            listerr.append(8)
+
+        if len(listerr)==0:
+            return usedcolumn, -1
+        else:
+            return None, listerr
 
     def writevalue(self, value, column,row,sheet):
         #book=load_workbook(self.excelfile)

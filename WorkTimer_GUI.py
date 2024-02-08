@@ -37,6 +37,7 @@ class Window(QWidget):
         self.pandashow=pandashow
         self.skipload = False
         self.HeadersColumn=[]
+        self.project=project
 
         #Read data from config ini
         try:
@@ -248,7 +249,7 @@ class Window(QWidget):
             while ret==True:
                 ret=self.feedback("Error loading. Reconfigure?")
                 if ret:
-                    self.wizard(True)
+                    self.wizard(True, self.projecthandler.colmnerr)
                     self.projecthandler = work_project(project, feedback, self.sheet, self.columnnamelist, self.skiprow)
                     if self.projecthandler.ret is not None:
                         ret=False
@@ -738,10 +739,10 @@ class Window(QWidget):
             if stats.exec_() == QtWidgets.QDialog.Accepted:
                 self.pandashow(stats.data)
 
-    def wizard(self, reconfigure=False):
+    def wizard(self, reconfigure=False, listerr=[]):
         from dialogs import MagicWizard
         self.configini = self.confighand.configreadout()
-        wizard = MagicWizard(self.configini)
+        wizard = MagicWizard(self.configini, listerr)
         wizard.setAttribute(QtCore.Qt.WA_DeleteOnClose)
         #wizard.show()
         #ini=wizard.exec_()
@@ -749,6 +750,7 @@ class Window(QWidget):
         if wizard.exec_(**data):
             data.update(wizard.getData())
         self.configini=data
+
 
         #if ini == 0:
         #    ret=self.feedback("Error on .ini file occurred, please re-install ini file and reload","ok")
@@ -774,7 +776,10 @@ class Window(QWidget):
         except Exception as re:
             self.feedback("Error loading ini, aborting. ", re)
             sys.exit()
+
         if not reconfigure:
+            self.loadini()
+            self.loadtheprj(self.project, self.feedback)
             self.updateprj()
 
 
@@ -790,7 +795,7 @@ class Window(QWidget):
         if action == "settings":
             self.settings()
         if action == "wizard":
-            self.wizard()
+            self.wizard(reconfigure=False)
         if action == "update":
             self.updateprj()
         if action == "stop":
