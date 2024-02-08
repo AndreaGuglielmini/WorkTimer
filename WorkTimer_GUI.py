@@ -36,6 +36,7 @@ class Window(QWidget):
         self.feedback=feedback
         self.pandashow=pandashow
         self.skipload = False
+        self.HeadersColumn=[]
 
         #Read data from config ini
         try:
@@ -63,6 +64,8 @@ class Window(QWidget):
 
             self.nameprj = os.path.basename(project)
             self.pathprj=os.path.split(project)[0]
+
+
         else:
             self.columnnamelist=["","","","","","","","",""]
             self.HeadersColumn=["","","","","","","","",""]
@@ -245,7 +248,7 @@ class Window(QWidget):
             while ret==True:
                 ret=self.feedback("Error loading. Reconfigure?")
                 if ret:
-                    self.settings(True)
+                    self.wizard(True)
                     self.projecthandler = work_project(project, feedback, self.sheet, self.columnnamelist, self.skiprow)
                     if self.projecthandler.ret is not None:
                         ret=False
@@ -255,9 +258,9 @@ class Window(QWidget):
                         sys.exit()
                 else:
                     sys.exit()
-        else:
-            self.HeadersColumn= self.projecthandler.ret
-            self.keys=self.projecthandler.keys
+
+        self.HeadersColumn= self.projecthandler.ret
+        self.keys=self.projecthandler.keys
 
     def updatefilter(self):
         if self.FilterBtn.isChecked():
@@ -389,8 +392,9 @@ class Window(QWidget):
     def updateprj(self):
         try:
             self.projecthandler.read_excel(self.sheet)
+            self.projecthandler = work_project(self.project, self.feedback, self.sheet, self.columnnamelist,
+                                               self.skiprow)
         except:
-            self.projecthandler = work_project(self.project, self.feedback, self.sheet, self.columnnamelist, self.skiprow)
             self.actualprojectname=""
             self.projecthandler.read_excel(self.sheet)
         self.updatelist()
@@ -740,13 +744,16 @@ class Window(QWidget):
         wizard = MagicWizard(self.configini)
         wizard.setAttribute(QtCore.Qt.WA_DeleteOnClose)
         #wizard.show()
-        ini=wizard.exec_()
-        while ini != QtWidgets.QDialog.Accepted:
-            self.configini = ini
-            if self.configini is None:
-                ret=self.feedback("Error on .ini file occurred, please re-install ini file and reload. Exit?")
-                if ret:
-                    sys.exit()
+        #ini=wizard.exec_()
+        data = self.configini
+        if wizard.exec_(**data):
+            data.update(wizard.getData())
+        self.configini=data
+
+        #if ini == 0:
+        #    ret=self.feedback("Error on .ini file occurred, please re-install ini file and reload","ok")
+        #    sys.exit()
+        #self.configini=ini
 
         try:
             self.sheet = self.configini['PRJ']['sheet']
@@ -861,7 +868,7 @@ class WKMenu(QMainWindow):
         stoptimenoteAction.setStatusTip('Stop and add note')
         stoptimenoteAction.triggered.connect(self.stopnotestime)
 
-        settingsAction = QAction("&Settings (dismissed)", self)
+        settingsAction = QAction("&Settings (deprecated)", self)
         settingsAction.setStatusTip('Open settings')
         settingsAction.triggered.connect(self.settings)
 

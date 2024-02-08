@@ -488,6 +488,13 @@ class MagicWizard(QtWidgets.QWizard):
         self.addPage(Page3(configini))
         self.setWindowTitle("WorkTimer Setting Wizard")
         self.resize(640,480)
+        self.configini=configini
+
+    def getData(self):
+        return self.configini
+
+    def exec_(self, **data):
+        return super().exec_()
 
 class Page1(QtWidgets.QWizardPage):
     def __init__(self, parent=None):
@@ -581,7 +588,6 @@ class Page2(QtWidgets.QWizardPage):
 
         except Exception as re:
             print('Error loading ini file --> ', re)
-            self.accept()
             return None
 
 class Page3(QtWidgets.QWizardPage):
@@ -722,14 +728,6 @@ class Page3(QtWidgets.QWizardPage):
 
     def changevalue(self):
         try:
-            self.configini['PRJ']['sheet'] = self.LineSheetName.text()
-            self.configini['PRJ']['skiprow'] = self.LineSkipRow.text()
-            self.configini['PRJ']['stepminutes'] = self.LineStepMinutes.text()
-            self.configini['PRJ']['filterprojectby'] = self.LineFilter.text()
-            if self.AlwaysNotesbtn.isChecked():
-                self.configini['PRJ']['alwaysnotes'] = 'True'
-            else:
-                self.configini['PRJ']['alwaysnotes'] = 'False'
             self.configini['PRJ']['columncustomerprj'] = self.LineColumn0.text()
             self.configini['PRJ']['columncustomer'] = self.LineColumn1.text()
             self.configini['PRJ']['columnboard'] = self.LineColumn2.text()
@@ -742,9 +740,4 @@ class Page3(QtWidgets.QWizardPage):
 
         except Exception as re:
             print('Error loading ini file --> ', re)
-            self.accept()
             return None
-
-
-    def returnOK(self):
-        self.accept()
