@@ -429,9 +429,12 @@ class statistics(QDialog):
                     cb.setEnabled(False)
         #prj = testfilter.tolist('projectname')
         #print(prj)
-
-        timesum = self.data.loc[self.data['date_start'] == req_date, 'timeelapsed'].sum()
-        print(timesum)
+        try:
+            timesum = self.data.loc[self.data['date_start'] == req_date, 'timeelapsed'].sum()
+            print(timesum)
+        except Exception as re:
+            messageshow("Error parsing data: "+str(re))
+            timesum=0
         if timesum > 0:
             timesum24 = (timesum/24) * 100
         else:

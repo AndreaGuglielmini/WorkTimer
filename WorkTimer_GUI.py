@@ -336,7 +336,7 @@ class Window(QWidget):
                     print("not found")
 
             self.projecthandler.writevalue(updatevalue, self.projecthandler.columnEffectiveHour,row, self.sheet) #TBD
-            self.csv_handler(self.actualprojectruntime,end,timeelapsed,notes)
+            self.csv_handler(self.actualprojectruntime,end,float(timeelapsed),notes)
             self.isprojectrunning = False
             self.actualprojectruntime = 0
             self.actualprojectname=''
