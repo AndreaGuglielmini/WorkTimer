@@ -28,7 +28,7 @@ import os
 class Window(QWidget):
 
 
-    def __init__(self, version, project, feedback,confighand,pandashow):
+    def __init__(self, version, project, feedback,confighand,pandashow,inipath):
         QWidget.__init__(self)
         self.layout = QGridLayout()
         self.setLayout(self.layout)
@@ -38,6 +38,7 @@ class Window(QWidget):
         self.skipload = False
         self.HeadersColumn=[]
         self.project=project
+        self.inipath=inipath
 
         #Read data from config ini
         try:
@@ -742,7 +743,7 @@ class Window(QWidget):
     def wizard(self, reconfigure=False, listerr=[]):
         from dialogs import MagicWizard
         self.configini = self.confighand.configreadout()
-        wizard = MagicWizard(self.configini, listerr)
+        wizard = MagicWizard(self.configini,self.inipath, listerr)
         wizard.setAttribute(QtCore.Qt.WA_DeleteOnClose)
         #wizard.show()
         #ini=wizard.exec_()
