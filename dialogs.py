@@ -344,14 +344,16 @@ class statistics(QDialog):
         self.setWindowTitle(self.projectname)
         self.projects_cb=[]
         self.projects_btn=[]
-
+        maxrows=8
         row = 0
         for i in range(0, len(self.listofcsv)):
+            column=int(((i/maxrows)%2))+1
+            trow=i-(column-1)*maxrows
             self.projects_cb.append(QCheckBox(self.listofcsv[i][:-4], self))
-            layout.addWidget(self.projects_cb[i], row, 1)
+            layout.addWidget(self.projects_cb[i], trow, column)
             self.projects_cb[i].setChecked(True)
-            row=row+1
 
+        row=row +maxrows+1
         endButton = QtWidgets.QPushButton('OK')
         endButton.clicked.connect(self.returnOK)
         endButton.setMaximumWidth(40)
