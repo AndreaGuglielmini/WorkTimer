@@ -1,12 +1,12 @@
 #===============================================================================================================
 # Author:       Guglielmini Andrea
-# Date:         19/12/2023
+# Date:         13/02/2024
 # Application:  WorKTimer Application
 # Version:      See version
 #===============================================================================================================
 
 import sys, os
-version="0.9.5"
+version="0.9.6"
 myappid = 'AndreaGuglielmini.WorkTimer.GUI'+version # arbitrary string
 
 import ctypes
