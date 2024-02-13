@@ -833,14 +833,14 @@ class WKMenu(QMainWindow):
         fileMenu = menubar.addMenu('&File')
 
         exitAct.setShortcut('Ctrl+Q')
-        exitAct.setStatusTip('Exit application Ctrl+Q')
+        exitAct.setStatusTip('Exit application')
 
-        OpenAction = QAction("&Open..  Ctrl+O", self)
+        OpenAction = QAction("&Open..", self)
         OpenAction.setShortcut("Ctrl+O")
         OpenAction.setStatusTip('Open xls file')
         OpenAction.triggered.connect(self.open)
 
-        UpdateAction = QAction("&Update from xls  Ctrl+U", self)
+        UpdateAction = QAction("&Update from xls", self)
         UpdateAction.setShortcut("Ctrl+U")
         UpdateAction.setStatusTip('Update view from xls file')
         UpdateAction.triggered.connect(self.update)
