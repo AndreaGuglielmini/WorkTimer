@@ -19,7 +19,8 @@ import sys
 # Local imports
 from dialogs import settings
 from dialogs import statistics
-from DB_lib import work_project
+from DB_lib import work_project, timetable_project
+from os.path import exists
 
 import math
 
@@ -39,6 +40,7 @@ class Window(QWidget):
         self.HeadersColumn=[]
         self.project=project
         self.inipath=inipath
+        self.pathprj=""
 
         #Read data from config ini
         try:
@@ -75,6 +77,11 @@ class Window(QWidget):
             self.listofworks=[]
             self.isprojectrunning=False
 
+        self.searchtimetable(self.pathprj, self.timetable_columnexp)
+
+        if self.timetableActive:
+            self.timetable_db = timetable_project()
+            self.timetable_expiredlist()
 
         self.format = '%y/%m/%d, %H:%M:%S'
 
@@ -723,6 +730,8 @@ class Window(QWidget):
             self.columnnamelist.append(str(self.configini['PRJ']['columnEffectiveHour']))
             self.columnnamelist.append(str(self.configini['PRJ']['columnStatus']))
             self.isprojectrunning = self.configini.getboolean('RUN', 'isprojectrunning')
+            self.timetable_namefile = str(self.configini['TimeTable']['namefile'])
+            self.timetable_columnexp = str(self.configini['TimeTable']['columndate'])
             return True
         except Exception as re:
             print(re)
@@ -803,17 +812,33 @@ class Window(QWidget):
             self.stopcounter('shift')
         if action == "stopnotes":
             self.stopcounter('ctrl')
+        if action == "timetable":
+            if self.timetableActive:
+                TBD_DIALOGS
+
+    def searchtimetable(self, path):
+        self.timetable_excelfile(path+self.timetable_namefile)
+        print(self.timetable_excelfile)
+        if exists(self.timetable_excelfile):
+            self.timetableActive=True
+        else:
+            self.timetableActive=False
+
+    def timetable_expiredlist(self):
+        for self.
+
 
 from PyQt5.QtWidgets import QMainWindow, QAction, qApp, QApplication
 from PyQt5.QtGui import QIcon
 
 class WKMenu(QMainWindow):
 
-    def __init__(self, container, panda=False):
+    def __init__(self, container, panda=False, timetable=False):
         super().__init__()
 
         self.container=container
         self.panda=panda
+        self.timetable=timetable
         self.initUI()
 
     def initUI(self):
@@ -835,15 +860,20 @@ class WKMenu(QMainWindow):
         exitAct.setShortcut('Ctrl+Q')
         exitAct.setStatusTip('Exit application Ctrl+Q')
 
-        OpenAction = QAction("&Open..  Ctrl+O", self)
+        OpenAction = QAction("&Open..", self)
         OpenAction.setShortcut("Ctrl+O")
         OpenAction.setStatusTip('Open xls file')
         OpenAction.triggered.connect(self.open)
 
-        UpdateAction = QAction("&Update from xls  Ctrl+U", self)
+        UpdateAction = QAction("&Update from xls", self)
         UpdateAction.setShortcut("Ctrl+U")
         UpdateAction.setStatusTip('Update view from xls file')
         UpdateAction.triggered.connect(self.update)
+
+        if not self.timetable:
+            TimeTableAction = QAction("&Open TimeTable", self)
+            TimeTableAction.setStatusTip('Open TimeTable')
+            TimeTableAction.triggered.connect(self.dotimetable)
 
         #Create File menu entry
         fileMenu.addAction(OpenAction)
@@ -922,3 +952,6 @@ class WKMenu(QMainWindow):
 
     def stopnotestime(self):
         self.container("stopnotes")
+
+    def dotimetable(self):
+        self.container("timetable")

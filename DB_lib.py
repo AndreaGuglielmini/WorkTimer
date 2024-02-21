@@ -187,3 +187,51 @@ class work_project:
             dictofworks[element[self.columnboard]+"attr"] = attribute
             cycle=cycle+1
         return self.listofwork,dictofworks
+
+class timetable_project:
+    def __init__(self, excelfile,feedback):
+
+        self.feedback=feedback
+        self.read_excel(excelfile)
+
+
+        def read_excel(self, sheet):
+
+            print("load files DB (can take some minutes)..")
+            splash_pix = QPixmap("splash.jpeg", )
+            splash = QSplashScreen(splash_pix, QtCore.Qt.WindowStaysOnTopHint)
+            progressBar = QProgressBar(splash)
+            progressBar.setMinimumWidth(200)
+            progressBar.setValue(0)
+            splash.setMask(splash_pix.mask())
+            splash.showMessage("Loading project..", alignment=Qt.AlignBottom, color=Qt.black)
+            splash.show()
+            self.cat_list_raw = []
+            self.cat_header = []
+
+            print("loading -> " + self.excelfile)
+            splash.showMessage(self.excelfile, alignment=Qt.AlignBottom, color=Qt.black)
+            progressBar.setValue(0)
+            try:
+                app = xl.App(
+                    visible=False)  # workaround found at https://stackoverflow.com/questions/71789086/pandas-read-excel-with-formulas-and-get-values
+                book = app.books.open(self.excelfile)
+                book.save()
+                app.kill()
+                cat_dataframe = pd.read_excel(self.excelfile, sheet, skiprows=self.skip)
+                progressBar.setValue(100)
+            except Exception as re:
+                print(re)
+                print("Requires openpyxl version 3.0.10 to work properly")
+                self.feedback(
+                    "Requires openpyxl version 3.0.10 to work properly\r\n" + "Close all excel file before executing\r\n" + str(
+                        re), "ok")
+                return 0
+            self.cat_header = cat_dataframe.columns.tolist()
+            self.cat_list_raw = cat_dataframe.values.tolist()
+
+            try:
+                splash.close()
+            except Exception as re:
+                print(re)
+                pass
