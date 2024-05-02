@@ -470,6 +470,7 @@ class Window(QWidget):
                         ''')
                 except:
                     percentage = 0
+                    text = round(percentage * 100)
                 try:
                     a=float(percentage)
                     if a>1:
@@ -488,6 +489,7 @@ class Window(QWidget):
                             ''')
                 except:
                     percentage=0
+                    text=round(percentage*100)
 
 
 
@@ -510,6 +512,7 @@ class Window(QWidget):
                 self.LineStatus[index].setText("")
                 self.btnstart[index].setText("")
                 self.LineOreLavorate_PB[index].setValue(0)
+                self.LineOreLavorate_PB[index].setFormat(str(0) + "%")
                 self.btnstart[index].setEnabled(False)
 
         if self.isprojectrunning:
