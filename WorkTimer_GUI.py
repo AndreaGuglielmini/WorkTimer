@@ -428,7 +428,7 @@ class Window(QWidget):
             self.displayed=self.listofworks
 
 
-        if len(self.displayed)>self.numerorighe:
+        if len(self.displayed)>=self.numerorighe:
             self.PrevPagebtn.setEnabled(True)
             self.NextPagebtn.setEnabled(True)
         else:
@@ -438,6 +438,7 @@ class Window(QWidget):
             self.NextPagebtn.setEnabled(False)
         else:
             self.NextPagebtn.setEnabled(True)
+            self.PrevPagebtn.setEnabled(False)
         self.PageText.setText("Page: "+str(self.actualpage+1) + " / " + str(math.ceil(len(self.displayed) / self.numerorighe)))
 
 
