@@ -349,7 +349,7 @@ class Window(QWidget):
 
     def startcounter(self):
         sender = self.sender()
-        name=self.displayed[int(sender.text()[-1])][self.projecthandler.columnboard]
+        name=self.displayed[int(sender.text()[-1])+(self.actualpage*self.numerorighe)][self.projecthandler.columnboard]
         print(name + ' was pressed')
         invalid=False
         if not (name in self.dictofworks):
