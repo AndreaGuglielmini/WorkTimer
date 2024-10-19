@@ -334,7 +334,7 @@ class Window(QWidget):
                     break
                 except:
                     print("not found")
-
+            self.lockexcel(False)
             self.projecthandler.writevalue(updatevalue, self.projecthandler.columnEffectiveHour,row, self.sheet) #TBD
             self.csv_handler(self.actualprojectruntime,end,float(timeelapsed),notes)
             self.isprojectrunning = False
@@ -372,7 +372,27 @@ class Window(QWidget):
         self.configini['RUN']['isprojectrunning']=str(self.isprojectrunning)
         self.configini['RUN']['actualprojectname']=str(self.actualprojectname)
         self.confighand.writevalue(self.configini)
+        self.lockexcel(True)
         self.updateGUI()
+
+
+    def lockexcel(self, lock):
+        import os
+        from stat import S_IREAD, S_IRGRP, S_IROTH, S_IWUSR
+        if lock==True:
+            try:
+                os.chmod(self.project, S_IREAD|S_IRGRP|S_IROTH)
+            except Exception as g:
+                print(g)
+                self.feedback("Unable to lock excel file", "ok")
+        if lock==False:
+            try:
+                os.chmod(self.project, S_IWUSR)
+            except Exception as g:
+                print(g)
+                self.feedback("Unable to remove lock for excel file, please remove manually", "ok")
+
+
 
     def openprj(self):
         filename = QFileDialog.getOpenFileName()
