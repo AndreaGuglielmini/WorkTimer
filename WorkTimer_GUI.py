@@ -380,12 +380,15 @@ class Window(QWidget):
         import os
         from stat import S_IREAD, S_IRGRP, S_IROTH, S_IWUSR
         if lock==True:
+            #os.rename(self.project,self.project+".locked")
             try:
-                os.chmod(self.project, S_IREAD|S_IRGRP|S_IROTH)
+                #os.chmod(self.project+".locked", S_IREAD|S_IRGRP|S_IROTH)
+                os.chmod(self.project, S_IREAD | S_IRGRP | S_IROTH)
             except Exception as g:
                 print(g)
                 self.feedback("Unable to lock excel file", "ok")
         if lock==False:
+            #os.rename(self.project+ ".locked", self.project)
             try:
                 os.chmod(self.project, S_IWUSR)
             except Exception as g:

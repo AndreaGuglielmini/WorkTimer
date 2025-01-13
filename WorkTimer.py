@@ -6,7 +6,7 @@
 #===============================================================================================================
 
 import sys, os
-version="0.9.61"
+version="0.9.62"
 myappid = 'AndreaGuglielmini.WorkTimer.GUI'+version # arbitrary string
 
 import ctypes
