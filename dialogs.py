@@ -351,23 +351,39 @@ class statistics(QDialog):
         self.setWindowTitle(self.project_name)
 
         self.project_checkboxes = []
-        self.setup_project_checkboxes()
+        self.setup_project_checkboxes_empty()
 
         self.setup_buttons()
         if self.daily:
             self.dofilter()
             self.setup_date_controls()
+            self.setup_project_checkboxes()
+
         self.update_progress_bar()
 
-    def setup_project_checkboxes(self):
+
+    def setup_project_checkboxes_empty(self):
         max_rows = 8
-        for i, csv_file in enumerate(self.csv_file_list):
+        for i in range(0,9):
             column = int(((i / max_rows) % 2)) + 1
             row = i - (column - 1) * max_rows
-            checkbox = QCheckBox(csv_file[:-4], self)
+            checkbox = QCheckBox("checkbox"+str(i), self)
             checkbox.setChecked(True)
             self.layout.addWidget(checkbox, row, column)
             self.project_checkboxes.append(checkbox)
+
+    def setup_project_checkboxes(self):
+        max_rows = 8
+
+        selected_date = QtCore.QDateTime.currentDateTime().toString("dd/MM/yyyy")
+        filtered_data = self.data[self.data["date_start"] == selected_date]
+        valid_projects = filtered_data["projectname"].tolist()
+
+        for i, csv_file in enumerate(self.csv_file_list):
+
+            if csv_file in valid_projects:
+
+                self.project_checkboxes[i].text(csv_file)
 
     def setup_buttons(self):
         end_button = QtWidgets.QPushButton("OK")
