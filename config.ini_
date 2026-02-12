@@ -1,0 +1,23 @@
+[PRJ]
+acutalproject =
+sheet =
+skiprow =
+stepminutes =
+alwaysnotes =
+filterprojectby =
+columncustomerprj =
+columncustomer =
+columnboard =
+columnprevhour =
+columnunitcost =
+columncost =
+columncostnotax =
+columneffectivehour =
+columnstatus =
+
+[RUN]
+actualproject = 
+actualprojectname = 
+actualprojectruntime = 0
+isprojectrunning = False
+

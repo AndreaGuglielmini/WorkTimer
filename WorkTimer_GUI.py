@@ -666,6 +666,7 @@ class Window(QWidget):
             except:
                 print("not found")
         name=self.dictofworks[self.actualprojectname][self.projecthandler.columnboard]
+        name=name.replace("/","_")
         csvfile=str(self.pathprj)+"/dbfile/"+str(name)+".csv"
         statinfo = os.access(csvfile, mode=os.W_OK)
         if not statinfo:
