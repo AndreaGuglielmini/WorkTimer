@@ -354,7 +354,7 @@ class statistics(QDialog):
             #layout.addWidget(self.projects_cb[i], trow, column)
             #self.projects_cb[i].setChecked(True)
 
-        for i in range(0, 9):
+        for i in range(0, 8):
             column=int(((i/maxrows)%2))+1
             trow=i-(column-1)*maxrows
             self.projects_cb.append(QCheckBox(self.listofcsv[i][:-4], self))
@@ -431,6 +431,8 @@ class statistics(QDialog):
         testfilter = self.data[self.data['date_start'] == req_date]
         testfilterlist = testfilter['projectname'].tolist()
         print(testfilter)
+
+        testfilterlist = list(set(testfilterlist))
         print(testfilterlist)
         num=0
         if not filter:
@@ -448,12 +450,18 @@ class statistics(QDialog):
                 num=num+1
         #prj = testfilter.tolist('projectname')
         #print(prj)
-        try:
-            timesum = self.data.loc[self.data['date_start'] == req_date, 'timeelapsed'].sum()
-            print(timesum)
-        except Exception as re:
-            messageshow("Error parsing data: "+str(re))
-            timesum=0
+        timesum=0
+
+        for cb in self.projects_cb:
+            if cb.text() in testfilterlist and not cb.text()=="Empty":
+                if cb.isChecked():
+                    timesum = timesum + self.data.loc[(self.data['projectname'] == str(cb.text())) & (self.data['date_start'] == req_date), 'timeelapsed'].sum()
+
+            #timesum1 = self.data.loc[self.data['date_start'] == req_date, 'timeelapsed'].sum()
+            #print(timesum)
+        #except Exception as re:
+            #messageshow("Error parsing data: "+str(re))
+            #timesum=0
         if timesum > 0:
             timesum24 = (timesum/24) * 100
         else:
