@@ -324,148 +324,185 @@ class settings(QDialog):
         self.accept()
         return self.configini
 
-import os
-from PyQt5.QtWidgets import QDialog, QCheckBox, QLabel, QProgressBar
-import PyQt5.QtWidgets as QtWidgets
-from PyQt5 import QtCore
-import pandas as pd
-from datetime import datetime
-
 
 class statistics(QDialog):
-    def __init__(self, project_folder, project_name="", daily=False, parent=None):
-        super().__init__(parent)
-        self.project_name = project_name
-        self.project_folder = project_folder
-        self.daily = daily
-        self.spent_time = []
-        self.printable = []
-        self.csv_file_list = []
+    def __init__(self, projectfolder,projectname="", daily=False, parent=None):
+        super(statistics, self).__init__(parent)
+        self.projectname=projectname
+        self.projectfolder=projectfolder
+        self.daily=daily
+        self.spenttime=[]
+        self.printable=[]
+        self.listofcsv = []
         self.data = []
+        self.loadcsv()
+        self.initUI()
 
-        self.load_csv_files()
-        self.init_ui()
+    def initUI(self):
+        layout = QtWidgets.QGridLayout(self)
+        self.layout=layout
+        self.setWindowTitle(self.projectname)
+        self.projects_cb=[]
+        self.projects_btn=[]
+        maxrows=8
+        row = 0
 
-    def init_ui(self):
-        self.layout = QtWidgets.QGridLayout(self)
-        self.setWindowTitle(self.project_name)
+        #for i in range(0, len(self.listofcsv)):
+            #column=int(((i/maxrows)%2))+1
+            #trow=i-(column-1)*maxrows
+            #self.projects_cb.append(QCheckBox(self.listofcsv[i][:-4], self))
+            #layout.addWidget(self.projects_cb[i], trow, column)
+            #self.projects_cb[i].setChecked(True)
 
-        self.project_checkboxes = []
-        self.setup_project_checkboxes_empty()
+        for i in range(0, 9):
+            column=int(((i/maxrows)%2))+1
+            trow=i-(column-1)*maxrows
+            self.projects_cb.append(QCheckBox(self.listofcsv[i][:-4], self))
+            layout.addWidget(self.projects_cb[i], trow, column)
+            self.projects_cb[i].setChecked(True)
 
-        self.setup_buttons()
+        row=row +maxrows+1
+        endButton = QtWidgets.QPushButton('OK')
+        endButton.clicked.connect(self.returnOK)
+        endButton.setMaximumWidth(40)
+        layout.addWidget(endButton, row, 0)
         if self.daily:
             self.dofilter()
-            self.setup_date_controls()
-            self.setup_project_checkboxes()
+            num=0
+            for cb in self.projects_cb:
+                cb.stateChanged.connect(self.changefilter)
 
-        self.update_progress_bar()
+            self.dateedit = QtWidgets.QDateEdit(calendarPopup=True)
+            self.dateedit.setDateTime(QtCore.QDateTime.currentDateTime())
+            self.dateedit.dateChanged.connect(self.newdate)
+            layout.addWidget(self.dateedit, row, 1)
+
+            self.timesum_PB=QProgressBar()
+
+            self.timesum_PB.setStyleSheet('''
+                QProgressBar {  background-color: grey;
+                                color: white;               /* Text color (not highlighted)
+                            }
+                ''')
+            self.timesum_PB.setOrientation(QtCore.Qt.Vertical)
+            layout.addWidget(self.timesum_PB, 0, 0,row-2,0)
+            self.label = QLabel("..loading..")
+            layout.addWidget(self.label, row - 1, 0)
+            row=row+1
+            next_b=QtWidgets.QPushButton('>')
+            next_b.clicked.connect(self.nextday)
+            next_b.setMaximumWidth(40)
+            prev_b=QtWidgets.QPushButton('<')
+            prev_b.clicked.connect(self.prevday)
+            prev_b.setMaximumWidth(40)
+            layout.addWidget(next_b, row, 1)
+            layout.addWidget(prev_b, row, 0)
+
+            self.changedate()
+    def nextday(self):
+        val=self.dateedit.date().addDays(1)
+        self.dateedit.setDateTime(QtCore.QDateTime(val))
+        self.changedate()
+
+    def prevday(self):
+        val=self.dateedit.date().addDays(-1)
+        self.dateedit.setDateTime(QtCore.QDateTime(val))
+        self.changedate()
+
+    def changefilter(self):
+        isanyone=False
+        for cb in self.projects_cb:
+            if cb.isChecked():
+                isanyone=True
+
+        if isanyone:
+            self.dofilter()
+            self.changedate(True)
+
+    def newdate(self):
+        for cb in self.projects_cb:
+            cb.setChecked(True)
+        self.changedate()
+
+    def changedate(self,filter=False):
+        req_date = self.dateedit.date()
+        req_date = req_date.toString('dd/MM/yyyy')
+        #testfilter = self.data.query("date_start==@req_date")
+        testfilter = self.data[self.data['date_start'] == req_date]
+        testfilterlist = testfilter['projectname'].tolist()
+        print(testfilter)
+        print(testfilterlist)
+        num=0
+        if not filter:
+            for cb in self.projects_cb:
+                #if cb.text() in testfilterlist:
+                #    cb.setEnabled(True)
+                #else:
+                #    cb.setEnabled(False)
+                try:
+                    cb.setText(str(testfilterlist[num]))
+                    cb.setEnabled(True)
+                except:
+                    cb.setText("Empty")
+                    cb.setEnabled(False)
+                num=num+1
+        #prj = testfilter.tolist('projectname')
+        #print(prj)
+        try:
+            timesum = self.data.loc[self.data['date_start'] == req_date, 'timeelapsed'].sum()
+            print(timesum)
+        except Exception as re:
+            messageshow("Error parsing data: "+str(re))
+            timesum=0
+        if timesum > 0:
+            timesum24 = (timesum/24) * 100
+        else:
+            timesum24 = 0
+        if timesum > 24:
+            timesum24=0
+            timesum="ERR"
+        value=int(timesum24)
+        self.timesum_PB.setValue(value)
+        print(self.timesum_PB.value())
+        self.timesum_PB.setFormat("")
+        self.label.setText((str(timesum) + " hour"))
 
 
-    def setup_project_checkboxes_empty(self):
-        max_rows = 8
-        for i in range(0,9):
-            column = int(((i / max_rows) % 2)) + 1
-            row = i - (column - 1) * max_rows
-            checkbox = QCheckBox("checkbox"+str(i), self)
-            checkbox.setChecked(True)
-            self.layout.addWidget(checkbox, row, column)
-            self.project_checkboxes.append(checkbox)
+    def loadcsv(self):
+        csvfolder=self.projectfolder+"/dbfile/"
 
-    def setup_project_checkboxes(self):
-        max_rows = 8
-
-        selected_date = QtCore.QDateTime.currentDateTime().toString("dd/MM/yyyy")
-        filtered_data = self.data[self.data["date_start"] == selected_date]
-        valid_projects = filtered_data["projectname"].tolist()
-
-        for i, csv_file in enumerate(self.csv_file_list):
-
-            if csv_file in valid_projects:
-
-                self.project_checkboxes[i].text(csv_file)
-
-    def setup_buttons(self):
-        end_button = QtWidgets.QPushButton("OK")
-        end_button.clicked.connect(self.return_ok)
-        end_button.setMaximumWidth(40)
-        self.layout.addWidget(end_button, len(self.project_checkboxes) + 1, 0)
-
-    def setup_date_controls(self):
-        self.date_edit = QtWidgets.QDateEdit(calendarPopup=True)
-        self.date_edit.setDateTime(QtCore.QDateTime.currentDateTime())
-        self.date_edit.dateChanged.connect(self.new_date)
-        self.layout.addWidget(self.date_edit, len(self.project_checkboxes) + 2, 1)
-
-        self.time_sum_progress_bar = QProgressBar()
-        self.time_sum_progress_bar.setOrientation(QtCore.Qt.Vertical)
-        self.layout.addWidget(self.time_sum_progress_bar, 0, 0)
-
-        self.label = QLabel("..loading..")
-        self.layout.addWidget(self.label, len(self.project_checkboxes) + 3, 0)
-
-    def new_date(self):
-        for checkbox in self.project_checkboxes:
-            checkbox.setChecked(True)
-        self.changed_date()
-
-    def changed_date(self):
-        selected_date = self.date_edit.date().toString("dd/MM/yyyy")
-        filtered_data = self.data[self.data["date_start"] == selected_date]
-
-        self.update_checkbox_states(filtered_data)
-        self.update_progress_bar(filtered_data)
-
-    def update_checkbox_states(self, filtered_data):
-        valid_projects = filtered_data["projectname"].tolist()
-        for checkbox in self.project_checkboxes:
-            checkbox.setEnabled(checkbox.text() in valid_projects)
-
-    def update_progress_bar(self, filtered_data=None):
-        if filtered_data is None:
-            self.time_sum_progress_bar.setValue(0)
-            self.label.setText("0 hour")
-            return
-
-        total_time = filtered_data["timeelapsed"].sum()
-        percentage = min((total_time / 24) * 100, 100)
-        self.time_sum_progress_bar.setValue(int(percentage))
-        self.label.setText(f"{total_time} hour")
-
-    def load_csv_files(self):
-        csv_folder = os.path.join(self.project_folder, "dbfile")
-        self.csv_file_list = [f for f in os.listdir(csv_folder) if f.lower().endswith(".csv")]
+        for file in os.listdir(csvfolder):
+            if file.lower().endswith('.csv'):
+                self.listofcsv.append(file)
+        print(self.listofcsv)
 
     def dofilter(self):
+        format = '%d/%m/%Y'
+        dateparse = lambda dates: [datetime.strptime(d, format) for d in dates]
         frame = []
-        for checkbox, csv_file in zip(self.project_checkboxes, self.csv_file_list):
-            if checkbox.isChecked():
-                file_path = os.path.join(self.project_folder, "dbfile", csv_file)
+        #for i in range(0,len(self.projects_cb)):
+        for i in range(0,len(self.listofcsv)):
+            #if self.projects_cb[i].isChecked():
+            if True:
+                filepath = self.projectfolder + "/dbfile/" + self.listofcsv[i]
                 try:
-                    df = pd.read_csv(
-                        file_path,
-                        delimiter=";",
-                        names=[
-                            "projectname",
-                            "date_start",
-                            "time_start",
-                            "date_stop",
-                            "time_stop",
-                            "timeelapsed",
-                            "notes",
-                        ],
-                        parse_dates=["date_start"],
-                    )
-                    frame.append(df)
-                except Exception as e:
-                    print(f"Error loading CSV file {file_path}: {e}")
+                    df = pd.read_csv(filepath, delimiter=";",
+                                 names=['projectname', 'date_start', 'time_start', 'date_stop', 'time_stop',
+                                        'timeelapsed', 'notes'], parse_dates=True, date_parser=dateparse)
+                except:
+                    messageshow("Error loading csv file for "+str(filepath))
+                frame.append(df)
         self.data = pd.concat(frame, axis=0, ignore_index=True)
 
-    def return_ok(self):
+
+
+
+    def returnOK(self):
         if not self.daily:
             self.dofilter()
+            self.loadcsv()
         self.accept()
-
+        return True
 
 from PyQt5 import QtCore, QtWidgets
 
