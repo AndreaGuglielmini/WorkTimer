@@ -19,6 +19,7 @@ import sys
 # Local imports
 from dialogs import settings
 from dialogs import statistics
+import Worktimer_statistic.main as wt_stat
 from DB_lib import work_project
 
 import math
@@ -120,6 +121,7 @@ class Window(QWidget):
                 self.Statsbtn = QPushButton('Statistics', self)
                 self.Statsbtn.clicked.connect(self.showstatistics)
                 self.layout.addWidget(self.Statsbtn, menurow, self.column5)
+
 
             self.Settingsbtn = QPushButton('Settings', self)
             self.Settingsbtn.clicked.connect(self.settings)
@@ -885,6 +887,12 @@ class WKMenu(QMainWindow):
             StatisticAction = QAction("&Statistic (experimental)", self)
             StatisticAction.setStatusTip('Open statistic interface')
             StatisticAction.triggered.connect(self.statistic)
+        else:
+            self.root = tk.Tk()
+            self.wt_stat=wt_stat.TimeTrackerGUI(root)
+            StatisticAction = QAction("&Statistic (new)", self)
+            StatisticAction.setStatusTip('Open statistic interface')
+            StatisticAction.triggered.connect(self.wt_stat)
 
         DailyAction = QAction("&Daily work", self)
         DailyAction.setStatusTip('Open daily stats interface')
