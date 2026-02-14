@@ -19,7 +19,8 @@ import sys
 # Local imports
 from dialogs import settings
 from dialogs import statistics
-import Worktimer_statistic.main as wt_stat
+from Worktimer_statistic.main import WT_Stat
+
 from DB_lib import work_project
 
 import math
@@ -888,8 +889,6 @@ class WKMenu(QMainWindow):
             StatisticAction.setStatusTip('Open statistic interface')
             StatisticAction.triggered.connect(self.statistic)
         else:
-            self.root = tk.Tk()
-            self.wt_stat=wt_stat.TimeTrackerGUI(root)
             StatisticAction = QAction("&Statistic (new)", self)
             StatisticAction.setStatusTip('Open statistic interface')
             StatisticAction.triggered.connect(self.wt_stat)
@@ -919,8 +918,7 @@ class WKMenu(QMainWindow):
         wizardAction.triggered.connect(self.wizard)
 
         #Create Tool menu entry
-        if self.panda:
-            toolMenu.addAction(StatisticAction)
+        toolMenu.addAction(StatisticAction)
         toolMenu.addAction(DailyAction)
         toolMenu.addSeparator()
         toolMenu.addAction(modtimeAction)
@@ -958,3 +956,7 @@ class WKMenu(QMainWindow):
 
     def stopnotestime(self):
         self.container("stopnotes")
+
+    def wt_stat(self):
+        self.stat_window = WT_Stat()
+        self.stat_window.show()

@@ -1,27 +1,29 @@
+# wt_stat.py
+
 import os
 import glob
-import threading
-import webbrowser
 from datetime import datetime
 
 import pandas as pd
+import matplotlib
+matplotlib.use("Qt5Agg")
+from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
+from matplotlib.figure import Figure
 
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 
-import dash
-from dash import dcc, html
-from dash.dependencies import Input, Output
-
-import plotly.express as px
-
-import tkinter as tk
-from tkinter import filedialog, messagebox
+from PyQt5.QtWidgets import (
+    QWidget, QFileDialog, QMessageBox,
+    QVBoxLayout, QHBoxLayout, QPushButton, QLabel, QComboBox,
+    QTableWidget, QTableWidgetItem, QDateEdit
+)
+from PyQt5.QtCore import Qt, QDate
 
 
-# =========================
-# CARICAMENTO E PREPROCESS
-# =========================
+# --------------------------
+# FUNZIONI DI SUPPORTO
+# --------------------------
 
 def load_all_csv(folder):
     files = glob.glob(os.path.join(folder, "*.csv"))
@@ -29,83 +31,80 @@ def load_all_csv(folder):
         raise FileNotFoundError("Nessun file .csv trovato nella cartella.")
 
     df_list = []
-    for f in files:
-        # Adatta sep / header se necessario
-        df = pd.read_csv(f, sep="\t", header=None)
-        df.columns = [
-            "projectname", "date_start", "time_start",
-            "date_end", "time_end", "timeelapsed"
-        ]
-        df_list.append(df)
 
-    df = pd.concat(df_list, ignore_index=True)
-    return df
+    for f in files:
+        try:
+            df = pd.read_csv(
+                f,
+                sep=";",
+                header=None,
+                engine="python",
+                dtype=str,
+                skip_blank_lines=True
+            )
+
+            # Rimuove righe completamente vuote
+            df = df.dropna(how="all")
+
+            # Controlla che ci siano 7 colonne
+            if df.shape[1] != 7:
+                print(f"File {f} ignorato: colonne trovate = {df.shape[1]}")
+                continue
+
+            # Scarta l’ultima colonna vuota
+            df = df.iloc[:, :6]
+
+            df.columns = [
+                "projectname", "date_start", "time_start",
+                "date_end", "time_end", "timeelapsed"
+            ]
+
+            df_list.append(df)
+
+        except Exception as e:
+            print(f"Errore nel file {f}: {e}")
+            continue
+
+    if not df_list:
+        raise ValueError("Nessun file valido trovato.")
+
+    return pd.concat(df_list, ignore_index=True)
+
+
+
+
 
 
 def preprocess(df):
-    df["start"] = pd.to_datetime(
-        df["date_start"] + " " + df["time_start"],
-        format="%d/%m/%Y %H:%M"
-    )
-    df["end"] = pd.to_datetime(
-        df["date_end"] + " " + df["time_end"],
-        format="%d/%m/%Y %H:%M"
-    )
+    df["start"] = pd.to_datetime(df["date_start"] + " " + df["time_start"],
+                                 format="%d/%m/%Y %H:%M")
+    df["end"] = pd.to_datetime(df["date_end"] + " " + df["time_end"],
+                               format="%d/%m/%Y %H:%M")
     df["duration"] = df["timeelapsed"].astype(float)
-    df = df.sort_values("start")
-    return df
+    return df.sort_values("start")
 
-
-# =========================
-# STATISTICHE E ANALISI
-# =========================
 
 def compute_weekly_stats(df):
-    # Somma ore per settimana
-    weekly = (
-        df.set_index("start")
-          .resample("W")["duration"]
-          .sum()
-          .reset_index()
-    )
+    weekly = df.set_index("start").resample("W")["duration"].sum().reset_index()
     weekly["week"] = weekly["start"].dt.strftime("%Y-%W")
     return weekly[["week", "duration"]]
 
 
 def compute_monthly_stats(df):
-    monthly = (
-        df.set_index("start")
-          .resample("M")["duration"]
-          .sum()
-          .reset_index()
-    )
+    monthly = df.set_index("start").resample("M")["duration"].sum().reset_index()
     monthly["month"] = monthly["start"].dt.strftime("%Y-%m")
     return monthly[["month", "duration"]]
 
 
 def productivity_analysis(df):
-    # Esempio semplice: ore per progetto e ore medie per giorno
-    per_project = (
-        df.groupby("projectname")["duration"]
-          .sum()
-          .reset_index()
-          .sort_values("duration", ascending=False)
-    )
+    per_project = df.groupby("projectname")["duration"].sum().reset_index()
+    per_project = per_project.sort_values("duration", ascending=False)
 
-    per_day = (
-        df.set_index("start")
-          .resample("D")["duration"]
-          .sum()
-          .reset_index()
-    )
+    per_day = df.set_index("start").resample("D")["duration"].sum().reset_index()
     avg_per_day = per_day["duration"].mean() if not per_day.empty else 0.0
 
     return per_project, avg_per_day
 
-
-# =========================
-# PDF REPORT
-# =========================
 
 def generate_pdf_report(df, output_path):
     weekly = compute_weekly_stats(df)
@@ -114,39 +113,33 @@ def generate_pdf_report(df, output_path):
 
     c = canvas.Canvas(output_path, pagesize=A4)
     width, height = A4
-
     y = height - 50
+
     c.setFont("Helvetica-Bold", 16)
     c.drawString(50, y, "Report Attività / Produttività")
-    y -= 30
+    y -= 40
 
     c.setFont("Helvetica", 10)
     c.drawString(50, y, f"Generato il: {datetime.now().strftime('%d/%m/%Y %H:%M')}")
-    y -= 20
-
-    # Produttività generale
-    c.setFont("Helvetica-Bold", 12)
-    c.drawString(50, y, "Produttività generale")
-    y -= 20
-    c.setFont("Helvetica", 10)
-    c.drawString(60, y, f"Ore medie per giorno: {avg_per_day:.2f}")
     y -= 30
 
-    # Ore per progetto
+    c.setFont("Helvetica-Bold", 12)
+    c.drawString(50, y, "Ore medie per giorno:")
+    c.setFont("Helvetica", 10)
+    c.drawString(200, y, f"{avg_per_day:.2f}")
+    y -= 30
+
     c.setFont("Helvetica-Bold", 12)
     c.drawString(50, y, "Ore per progetto")
     y -= 20
     c.setFont("Helvetica", 10)
     for _, row in per_project.iterrows():
-        line = f"{row['projectname']}: {row['duration']:.2f} h"
-        c.drawString(60, y, line)
+        c.drawString(60, y, f"{row['projectname']}: {row['duration']:.2f} h")
         y -= 15
         if y < 80:
             c.showPage()
             y = height - 50
-            c.setFont("Helvetica", 10)
 
-    # Nuova pagina per settimanali/mensili
     c.showPage()
     y = height - 50
 
@@ -155,224 +148,219 @@ def generate_pdf_report(df, output_path):
     y -= 20
     c.setFont("Helvetica", 10)
     for _, row in weekly.iterrows():
-        line = f"Settimana {row['week']}: {row['duration']:.2f} h"
-        c.drawString(60, y, line)
+        c.drawString(60, y, f"{row['week']}: {row['duration']:.2f} h")
         y -= 15
-        if y < 80:
-            c.showPage()
-            y = height - 50
-            c.setFont("Helvetica", 10)
 
     c.showPage()
     y = height - 50
+
     c.setFont("Helvetica-Bold", 12)
     c.drawString(50, y, "Ore per mese")
     y -= 20
     c.setFont("Helvetica", 10)
     for _, row in monthly.iterrows():
-        line = f"Mese {row['month']}: {row['duration']:.2f} h"
-        c.drawString(60, y, line)
+        c.drawString(60, y, f"{row['month']}: {row['duration']:.2f} h")
         y -= 15
-        if y < 80:
-            c.showPage()
-            y = height - 50
-            c.setFont("Helvetica", 10)
 
     c.save()
 
 
-# =========================
-# DASH APP
-# =========================
+# --------------------------
+# CANVAS MATPLOTLIB
+# --------------------------
 
-def create_dash_app(df):
-    app = dash.Dash(__name__)
-
-    app.layout = html.Div([
-        html.H1("Time Tracking Dashboard"),
-
-        html.Div([
-            html.Label("Filtra per progetto"),
-            dcc.Dropdown(
-                id="project-filter",
-                options=[
-                    {"label": p, "value": p}
-                    for p in sorted(df["projectname"].unique())
-                ],
-                multi=True,
-                placeholder="Seleziona uno o più progetti"
-            ),
-        ], style={"width": "40%", "display": "inline-block"}),
-
-        html.Div([
-            html.Label("Intervallo date"),
-            dcc.DatePickerRange(
-                id="date-filter",
-                start_date=df["start"].min(),
-                end_date=df["start"].max()
-            ),
-        ], style={"width": "40%", "display": "inline-block", "marginLeft": "40px"}),
-
-        dcc.Tabs(id="tabs", value="tab-activities", children=[
-            dcc.Tab(label="Attività", value="tab-activities"),
-            dcc.Tab(label="Statistiche settimanali", value="tab-weekly"),
-            dcc.Tab(label="Statistiche mensili", value="tab-monthly"),
-            dcc.Tab(label="Produttività", value="tab-productivity"),
-        ]),
-
-        html.Div(id="tab-content")
-    ])
-
-    @app.callback(
-        Output("tab-content", "children"),
-        [
-            Input("tabs", "value"),
-            Input("project-filter", "value"),
-            Input("date-filter", "start_date"),
-            Input("date-filter", "end_date"),
-        ]
-    )
-    def render_tab(tab, projects, start_date, end_date):
-        filtered = df.copy()
-
-        if projects:
-            filtered = filtered[filtered["projectname"].isin(projects)]
-
-        if start_date:
-            filtered = filtered[filtered["start"] >= pd.to_datetime(start_date)]
-        if end_date:
-            filtered = filtered[filtered["start"] <= pd.to_datetime(end_date)]
-
-        if filtered.empty:
-            return html.Div("Nessun dato per i filtri selezionati.")
-
-        if tab == "tab-activities":
-            fig = px.bar(
-                filtered,
-                x="start",
-                y="duration",
-                color="projectname",
-                title="Tempo per attività",
-                hover_data=["projectname", "date_start", "time_start", "duration"]
-            )
-            return dcc.Graph(figure=fig)
-
-        elif tab == "tab-weekly":
-            weekly = compute_weekly_stats(filtered)
-            fig = px.bar(
-                weekly,
-                x="week",
-                y="duration",
-                title="Ore per settimana"
-            )
-            return dcc.Graph(figure=fig)
-
-        elif tab == "tab-monthly":
-            monthly = compute_monthly_stats(filtered)
-            fig = px.bar(
-                monthly,
-                x="month",
-                y="duration",
-                title="Ore per mese"
-            )
-            return dcc.Graph(figure=fig)
-
-        elif tab == "tab-productivity":
-            per_project, avg_per_day = productivity_analysis(filtered)
-            fig = px.bar(
-                per_project,
-                x="projectname",
-                y="duration",
-                title=f"Ore per progetto (media giornaliera: {avg_per_day:.2f} h)",
-            )
-            fig.update_layout(xaxis_title="Progetto", yaxis_title="Ore")
-            return dcc.Graph(figure=fig)
-
-        return html.Div("Tab non riconosciuta.")
-
-    return app
+class MplCanvas(FigureCanvas):
+    def __init__(self):
+        fig = Figure(figsize=(5, 3), dpi=100)
+        self.axes = fig.add_subplot(111)
+        super().__init__(fig)
 
 
-def run_dash_app(df):
-    app = create_dash_app(df)
-    # Avvia server su porta 8050
-    app.run_server(debug=False, use_reloader=False)
+# --------------------------
+# FINESTRA PRINCIPALE
+# --------------------------
 
+class WT_Stat(QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
 
-# =========================
-# INTERFACCIA DESKTOP (TK)
-# =========================
+        self.setWindowTitle("Statistiche attività")
+        self.resize(1200, 800)
 
-class TimeTrackerGUI:
-    def __init__(self, root):
-        self.root = root
-        self.root.title("Time Tracking Dashboard Launcher")
-
-        self.folder = tk.StringVar()
         self.df = None
+        self.filtered_df = None
 
-        tk.Label(root, text="Cartella CSV:").grid(row=0, column=0, padx=5, pady=5, sticky="w")
-        tk.Entry(root, textvariable=self.folder, width=50).grid(row=0, column=1, padx=5, pady=5)
-        tk.Button(root, text="Sfoglia", command=self.browse_folder).grid(row=0, column=2, padx=5, pady=5)
+        layout = QVBoxLayout(self)
 
-        tk.Button(root, text="Carica dati", command=self.load_data).grid(row=1, column=0, padx=5, pady=10)
-        tk.Button(root, text="Avvia dashboard", command=self.start_dashboard).grid(row=1, column=1, padx=5, pady=10)
-        tk.Button(root, text="Esporta report PDF", command=self.export_pdf).grid(row=1, column=2, padx=5, pady=10)
+        # --- CONTROLLI SUPERIORI ---
+        top = QHBoxLayout()
 
-    def browse_folder(self):
-        folder_selected = filedialog.askdirectory()
-        if folder_selected:
-            self.folder.set(folder_selected)
+        self.folder_label = QLabel("Cartella: (nessuna)")
+        btn_folder = QPushButton("Apri cartella CSV")
+        btn_folder.clicked.connect(self.load_folder)
 
-    def load_data(self):
+        self.project_combo = QComboBox()
+        self.project_combo.addItem("Tutti")
+        self.project_combo.currentIndexChanged.connect(self.apply_filters)
+
+        self.start_date = QDateEdit()
+        self.start_date.setCalendarPopup(True)
+        self.start_date.dateChanged.connect(self.apply_filters)
+
+        self.end_date = QDateEdit()
+        self.end_date.setCalendarPopup(True)
+        self.end_date.dateChanged.connect(self.apply_filters)
+
+        btn_pdf = QPushButton("Esporta PDF")
+        btn_pdf.clicked.connect(self.export_pdf)
+
+        top.addWidget(self.folder_label)
+        top.addWidget(btn_folder)
+        top.addWidget(QLabel("Progetto"))
+        top.addWidget(self.project_combo)
+        top.addWidget(QLabel("Da"))
+        top.addWidget(self.start_date)
+        top.addWidget(QLabel("A"))
+        top.addWidget(self.end_date)
+        top.addWidget(btn_pdf)
+
+        layout.addLayout(top)
+
+        # --- TABELLA ---
+        self.table = QTableWidget()
+        layout.addWidget(self.table)
+
+        # --- GRAFICI ---
+        self.canvas_act = MplCanvas()
+        self.canvas_week = MplCanvas()
+        self.canvas_month = MplCanvas()
+
+        layout.addWidget(QLabel("Attività"))
+        layout.addWidget(self.canvas_act)
+        layout.addWidget(QLabel("Statistiche settimanali"))
+        layout.addWidget(self.canvas_week)
+        layout.addWidget(QLabel("Statistiche mensili"))
+        layout.addWidget(self.canvas_month)
+
+    # --------------------------
+    # LOGICA
+    # --------------------------
+
+    def load_folder(self):
+        folder = QFileDialog.getExistingDirectory(self, "Seleziona cartella CSV")
+        if not folder:
+            return
+
         try:
-            if not self.folder.get():
-                messagebox.showwarning("Attenzione", "Seleziona una cartella.")
-                return
-            df = load_all_csv(self.folder.get())
+            df = load_all_csv(folder)
             df = preprocess(df)
             self.df = df
-            messagebox.showinfo("OK", f"Dati caricati. Righe totali: {len(df)}")
-        except Exception as e:
-            messagebox.showerror("Errore", f"Errore nel caricamento dati:\n{e}")
+            self.filtered_df = df.copy()
 
-    def start_dashboard(self):
+            self.folder_label.setText(f"Cartella: {folder}")
+
+            # Popola combo progetti
+            self.project_combo.blockSignals(True)
+            self.project_combo.clear()
+            self.project_combo.addItem("Tutti")
+            for p in sorted(df["projectname"].unique()):
+                self.project_combo.addItem(p)
+            self.project_combo.blockSignals(False)
+
+            # Imposta date range
+            min_d = df["start"].min().date()
+            max_d = df["start"].max().date()
+            self.start_date.setDate(QDate(min_d.year, min_d.month, min_d.day))
+            self.end_date.setDate(QDate(max_d.year, max_d.month, max_d.day))
+
+            self.refresh_table()
+            self.refresh_plots()
+
+        except Exception as e:
+            QMessageBox.critical(self, "Errore", str(e))
+
+    def apply_filters(self):
         if self.df is None:
-            messagebox.showwarning("Attenzione", "Carica prima i dati.")
             return
 
-        def run_server():
-            run_dash_app(self.df)
+        df = self.df.copy()
 
-        t = threading.Thread(target=run_server, daemon=True)
-        t.start()
+        proj = self.project_combo.currentText()
+        if proj != "Tutti":
+            df = df[df["projectname"] == proj]
 
-        webbrowser.open("http://127.0.0.1:8050")
+        s = self.start_date.date()
+        e = self.end_date.date()
+        s_dt = datetime(s.year(), s.month(), s.day())
+        e_dt = datetime(e.year(), e.month(), e.day(), 23, 59, 59)
+
+        df = df[(df["start"] >= s_dt) & (df["start"] <= e_dt)]
+
+        self.filtered_df = df
+        self.refresh_table()
+        self.refresh_plots()
+
+    def refresh_table(self):
+        df = self.filtered_df
+        if df is None or df.empty:
+            self.table.clear()
+            self.table.setRowCount(0)
+            self.table.setColumnCount(0)
+            return
+
+        cols = ["projectname", "date_start", "time_start", "date_end", "time_end", "duration"]
+        self.table.setColumnCount(len(cols))
+        self.table.setRowCount(len(df))
+        self.table.setHorizontalHeaderLabels(cols)
+
+        for i, (_, row) in enumerate(df[cols].iterrows()):
+            for j, col in enumerate(cols):
+                item = QTableWidgetItem(str(row[col]))
+                item.setFlags(item.flags() ^ Qt.ItemIsEditable)
+                self.table.setItem(i, j, item)
+
+        self.table.resizeColumnsToContents()
+
+    def refresh_plots(self):
+        df = self.filtered_df
+
+        # Attività
+        self.canvas_act.axes.clear()
+        if df is not None and not df.empty:
+            self.canvas_act.axes.bar(df["start"], df["duration"])
+            self.canvas_act.axes.set_title("Tempo per attività")
+            self.canvas_act.axes.tick_params(axis="x", labelrotation=45)
+        self.canvas_act.draw()
+
+        # Settimanali
+        self.canvas_week.axes.clear()
+        if df is not None and not df.empty:
+            w = compute_weekly_stats(df)
+            self.canvas_week.axes.bar(w["week"], w["duration"])
+            self.canvas_week.axes.set_title("Ore per settimana")
+            self.canvas_week.axes.tick_params(axis="x", labelrotation=45)
+        self.canvas_week.draw()
+
+        # Mensili
+        self.canvas_month.axes.clear()
+        if df is not None and not df.empty:
+            m = compute_monthly_stats(df)
+            self.canvas_month.axes.bar(m["month"], m["duration"])
+            self.canvas_month.axes.set_title("Ore per mese")
+            self.canvas_month.axes.tick_params(axis="x", labelrotation=45)
+        self.canvas_month.draw()
 
     def export_pdf(self):
-        if self.df is None:
-            messagebox.showwarning("Attenzione", "Carica prima i dati.")
+        if self.filtered_df is None or self.filtered_df.empty:
+            QMessageBox.warning(self, "Attenzione", "Nessun dato da esportare.")
             return
 
-        output_path = filedialog.asksaveasfilename(
-            defaultextension=".pdf",
-            filetypes=[("PDF files", "*.pdf")]
-        )
-        if not output_path:
+        path, _ = QFileDialog.getSaveFileName(self, "Salva PDF", "", "PDF (*.pdf)")
+        if not path:
             return
 
         try:
-            generate_pdf_report(self.df, output_path)
-            messagebox.showinfo("OK", f"Report PDF salvato in:\n{output_path}")
+            generate_pdf_report(self.filtered_df, path)
+            QMessageBox.information(self, "OK", f"PDF salvato in:\n{path}")
         except Exception as e:
-            messagebox.showerror("Errore", f"Errore nella generazione del PDF:\n{e}")
-
-
-# =========================
-# MAIN
-# =========================
-
-if __name__ == "__main__":
-    root = tk.Tk()
-    gui = TimeTrackerGUI(root)
-    root.mainloop()
+            QMessageBox.critical(self, "Errore", str(e))
