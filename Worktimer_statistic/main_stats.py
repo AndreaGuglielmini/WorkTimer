@@ -15,9 +15,11 @@ from reportlab.pdfgen import canvas
 
 from PyQt5.QtWidgets import (
     QWidget, QFileDialog, QMessageBox,
-    QVBoxLayout, QHBoxLayout, QPushButton, QLabel, QComboBox,
-    QTableWidget, QTableWidgetItem, QDateEdit
+    QVBoxLayout, QHBoxLayout, QPushButton, QLabel,
+    QComboBox, QTableWidget, QTableWidgetItem, QDateEdit,
+    QListWidget, QListWidgetItem
 )
+
 from PyQt5.QtCore import Qt, QDate
 
 
@@ -214,7 +216,7 @@ class WT_Stat(QWidget):
         super().__init__(parent)
 
         self.setWindowTitle("Statistiche attività")
-        self.resize(1200, 800)
+        self.resize(1400, 900)
 
         self.df = None
         self.filtered_df = None
@@ -228,10 +230,12 @@ class WT_Stat(QWidget):
         btn_folder = QPushButton("Apri cartella CSV")
         btn_folder.clicked.connect(self.load_folder)
 
-        self.project_combo = QComboBox()
-        self.project_combo.addItem("Tutti")
-        self.project_combo.currentIndexChanged.connect(self.apply_filters)
+        # Lista progetti da escludere
+        self.exclude_list = QListWidget()
+        self.exclude_list.setSelectionMode(QListWidget.MultiSelection)
+        self.exclude_list.itemSelectionChanged.connect(self.apply_filters)
 
+        # Date
         self.start_date = QDateEdit()
         self.start_date.setCalendarPopup(True)
         self.start_date.dateChanged.connect(self.apply_filters)
@@ -245,8 +249,8 @@ class WT_Stat(QWidget):
 
         top.addWidget(self.folder_label)
         top.addWidget(btn_folder)
-        top.addWidget(QLabel("Progetto"))
-        top.addWidget(self.project_combo)
+        top.addWidget(QLabel("Escludi progetti"))
+        top.addWidget(self.exclude_list)
         top.addWidget(QLabel("Da"))
         top.addWidget(self.start_date)
         top.addWidget(QLabel("A"))
@@ -255,21 +259,17 @@ class WT_Stat(QWidget):
 
         layout.addLayout(top)
 
-        # --- TABELLA ---
-        self.table = QTableWidget()
-        layout.addWidget(self.table)
-
         # --- GRAFICI ---
         self.canvas_act = MplCanvas()
         self.canvas_week = MplCanvas()
         self.canvas_month = MplCanvas()
 
         layout.addWidget(QLabel("Attività"))
-        layout.addWidget(self.canvas_act)
+        layout.addWidget(self.canvas_act, 2)
         layout.addWidget(QLabel("Statistiche settimanali"))
-        layout.addWidget(self.canvas_week)
+        layout.addWidget(self.canvas_week, 2)
         layout.addWidget(QLabel("Statistiche mensili"))
-        layout.addWidget(self.canvas_month)
+        layout.addWidget(self.canvas_month, 2)
 
     # --------------------------
     # LOGICA
@@ -288,22 +288,21 @@ class WT_Stat(QWidget):
 
             self.folder_label.setText(f"Cartella: {folder}")
 
-            # Popola combo progetti
-            self.project_combo.blockSignals(True)
-            self.project_combo.clear()
-            self.project_combo.addItem("Tutti")
+            # Popola lista progetti
+            self.exclude_list.clear()
             for p in sorted(df["projectname"].unique()):
-                self.project_combo.addItem(p)
-            self.project_combo.blockSignals(False)
+                item = QListWidgetItem(p)
+                item.setCheckState(Qt.Unchecked)
+                self.exclude_list.addItem(item)
 
-            # Imposta date range
-            min_d = df["start"].min().date()
-            max_d = df["start"].max().date()
-            self.start_date.setDate(QDate(min_d.year, min_d.month, min_d.day))
-            self.end_date.setDate(QDate(max_d.year, max_d.month, max_d.day))
+            # Imposta automaticamente l'anno corrente
+            year = datetime.now().year
+            start = QDate(year, 1, 1)
+            end = QDate(year, 12, 31)
+            self.start_date.setDate(start)
+            self.end_date.setDate(end)
 
-            self.refresh_table()
-            self.refresh_plots()
+            self.apply_filters()
 
         except Exception as e:
             QMessageBox.critical(self, "Errore", str(e))
@@ -314,10 +313,17 @@ class WT_Stat(QWidget):
 
         df = self.df.copy()
 
-        proj = self.project_combo.currentText()
-        if proj != "Tutti":
-            df = df[df["projectname"] == proj]
+        # Esclusione progetti
+        excluded = [
+            self.exclude_list.item(i).text()
+            for i in range(self.exclude_list.count())
+            if self.exclude_list.item(i).checkState() == Qt.Checked
+        ]
 
+        if excluded:
+            df = df[~df["projectname"].isin(excluded)]
+
+        # Filtro date
         s = self.start_date.date()
         e = self.end_date.date()
         s_dt = datetime(s.year(), s.month(), s.day())
@@ -326,29 +332,7 @@ class WT_Stat(QWidget):
         df = df[(df["start"] >= s_dt) & (df["start"] <= e_dt)]
 
         self.filtered_df = df
-        self.refresh_table()
         self.refresh_plots()
-
-    def refresh_table(self):
-        df = self.filtered_df
-        if df is None or df.empty:
-            self.table.clear()
-            self.table.setRowCount(0)
-            self.table.setColumnCount(0)
-            return
-
-        cols = ["projectname", "date_start", "time_start", "date_end", "time_end", "duration"]
-        self.table.setColumnCount(len(cols))
-        self.table.setRowCount(len(df))
-        self.table.setHorizontalHeaderLabels(cols)
-
-        for i, (_, row) in enumerate(df[cols].iterrows()):
-            for j, col in enumerate(cols):
-                item = QTableWidgetItem(str(row[col]))
-                item.setFlags(item.flags() ^ Qt.ItemIsEditable)
-                self.table.setItem(i, j, item)
-
-        self.table.resizeColumnsToContents()
 
     def refresh_plots(self):
         df = self.filtered_df
