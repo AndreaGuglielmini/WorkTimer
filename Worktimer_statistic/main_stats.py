@@ -232,8 +232,9 @@ class WT_Stat(QWidget):
 
         # Lista progetti da escludere
         self.exclude_list = QListWidget()
-        self.exclude_list.setSelectionMode(QListWidget.MultiSelection)
-        self.exclude_list.itemSelectionChanged.connect(self.apply_filters)
+        self.exclude_list.itemChanged.connect(self.apply_filters)
+
+
 
         # Date
         self.start_date = QDateEdit()
@@ -362,6 +363,8 @@ class WT_Stat(QWidget):
             self.canvas_month.axes.set_title("Ore per mese")
             self.canvas_month.axes.tick_params(axis="x", labelrotation=45)
         self.canvas_month.draw()
+
+
 
     def export_pdf(self):
         if self.filtered_df is None or self.filtered_df.empty:
