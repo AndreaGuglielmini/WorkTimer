@@ -3,7 +3,7 @@
 
 a = Analysis(
     ['WorkTimer.py'],
-    pathex=[],
+    pathex=['.', './lib'],
     binaries=[],
     datas=[],
     hiddenimports=[],
@@ -42,3 +42,6 @@ coll = COLLECT(
     upx_exclude=[],
     name='WorkTimer',
 )
+
+distpath = 'dist_new'
+datas=[('./lib/*.py', 'lib')]

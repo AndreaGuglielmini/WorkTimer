@@ -212,7 +212,7 @@ class MplCanvas(FigureCanvas):
 # --------------------------
 
 class WT_Stat(QWidget):
-    def __init__(self, parent=None):
+    def __init__(self, folder="None", parent=None):
         super().__init__(parent)
 
         self.setWindowTitle("Statistiche attività")
@@ -225,10 +225,15 @@ class WT_Stat(QWidget):
 
         # --- CONTROLLI SUPERIORI ---
         top = QHBoxLayout()
+        if folder=="None":
+            self.folder_label = QLabel("Cartella: (nessuna)")
+            btn_folder = QPushButton("Apri cartella CSV")
+            btn_folder.clicked.connect(self.load_folder)
+        else:
+            self.folder_label = QLabel("Cartella: (nessuna)")
+            btn_folder = QPushButton("Apri cartella CSV")
+            btn_folder.setEnabled(False)
 
-        self.folder_label = QLabel("Cartella: (nessuna)")
-        btn_folder = QPushButton("Apri cartella CSV")
-        btn_folder.clicked.connect(self.load_folder)
 
         # Lista progetti da escludere
         self.exclude_list = QListWidget()
@@ -271,15 +276,16 @@ class WT_Stat(QWidget):
         layout.addWidget(self.canvas_week, 2)
         layout.addWidget(QLabel("Statistiche mensili"))
         layout.addWidget(self.canvas_month, 2)
+        if folder != "None":
+            self.load_folder(folder)
 
     # --------------------------
     # LOGICA
     # --------------------------
 
-    def load_folder(self):
-        folder = QFileDialog.getExistingDirectory(self, "Seleziona cartella CSV")
-        if not folder:
-            return
+    def load_folder(self, folder):
+        if folder=="None":
+            folder = QFileDialog.getExistingDirectory(self, "Seleziona cartella CSV")
 
         try:
             df = load_all_csv(folder)

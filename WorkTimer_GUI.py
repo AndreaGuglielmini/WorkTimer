@@ -12,13 +12,13 @@ from PyQt5 import QtWidgets, QtCore
 
 
 from PyQt5.QtWidgets import *
-from PyQt5.QtWidgets import QMessageBox,QFileDialog
+from PyQt5.QtWidgets import QFileDialog
 import datetime
-from datetime import timedelta, datetime
+from datetime import datetime
 import sys
 # Local imports
-from dialogs import settings
-from dialogs import statistics
+from lib.dialogs import settings
+from lib.dialogs import statistics
 from Worktimer_statistic.main_stats import WT_Stat
 
 from DB_lib import work_project
@@ -81,7 +81,7 @@ class Window(QWidget):
         self.format = '%y/%m/%d, %H:%M:%S'
 
         # create menu
-        toolbar = WKMenu(self.container, pandashow)
+        toolbar = WKMenu(self.container, self.pathprj, pandashow)
         toolbaractive=True
 
         self.layout.addWidget(toolbar,0,0)
@@ -629,7 +629,7 @@ class Window(QWidget):
         self.layout.addWidget(self.LineStatus[-1], menurow, self.column7)
 
     def editstarttime(self):
-        from dialogs import fields
+        from lib.dialogs import fields
         if self.isprojectrunning:
             time=self.actualprojectruntime
             listtime=[]
@@ -772,7 +772,7 @@ class Window(QWidget):
                 self.pandashow(stats.data)
 
     def wizard(self, reconfigure=False, listerr=[]):
-        from dialogs import MagicWizard
+        from lib.dialogs import MagicWizard
         self.configini = self.confighand.configreadout()
         wizard = MagicWizard(self.configini,self.inipath, listerr)
         wizard.setAttribute(QtCore.Qt.WA_DeleteOnClose)
@@ -835,16 +835,17 @@ class Window(QWidget):
         if action == "stopnotes":
             self.stopcounter('ctrl')
 
-from PyQt5.QtWidgets import QMainWindow, QAction, qApp, QApplication
+from PyQt5.QtWidgets import QMainWindow, QAction, qApp
 from PyQt5.QtGui import QIcon
 
 class WKMenu(QMainWindow):
 
-    def __init__(self, container, panda=False):
+    def __init__(self, container, folder="None", panda=False):
         super().__init__()
 
         self.container=container
         self.panda=panda
+        self.folder=str(folder)
         self.initUI()
 
     def initUI(self):
@@ -891,7 +892,9 @@ class WKMenu(QMainWindow):
         else:
             StatisticAction = QAction("&Statistic (new)", self)
             StatisticAction.setStatusTip('Open statistic interface')
-            StatisticAction.triggered.connect(self.wt_stat)
+            #StatisticAction.triggered.connect(self.wt_stat)
+            #StatisticAction.triggered.connect(lambda: self.wt_stat(self.folder))
+            StatisticAction.triggered.connect(lambda checked: self.wt_stat(self.folder))
 
         DailyAction = QAction("&Daily work", self)
         DailyAction.setStatusTip('Open daily stats interface')
@@ -957,6 +960,15 @@ class WKMenu(QMainWindow):
     def stopnotestime(self):
         self.container("stopnotes")
 
-    def wt_stat(self):
-        self.stat_window = WT_Stat()
+    def wt_stat(self, folder):
+        folder=folder+"/dbfile/"
+        if os.path.isdir(folder):
+
+            print("Cartella ricevuta:", (folder))
+        else:
+            folder="None"
+        self.stat_window = WT_Stat(folder)
         self.stat_window.show()
+
+
+

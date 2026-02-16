@@ -15,7 +15,7 @@ ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
 
 from PyQt5.QtWidgets import *
 from PyQt5.QtWidgets import QMessageBox,QFileDialog
-from confighandler import *
+from lib.confighandler import *
 from os.path import exists
 
 def messageshow(text, style="std", title="Information"):
