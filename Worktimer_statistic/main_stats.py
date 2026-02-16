@@ -76,12 +76,41 @@ def load_all_csv(folder):
 
 
 def preprocess(df):
-    df["start"] = pd.to_datetime(df["date_start"] + " " + df["time_start"],
-                                 format="%d/%m/%Y %H:%M")
-    df["end"] = pd.to_datetime(df["date_end"] + " " + df["time_end"],
-                               format="%d/%m/%Y %H:%M")
-    df["duration"] = df["timeelapsed"].astype(float)
-    return df.sort_values("start")
+    # Normalizza stringhe (toglie spazi, None, ecc.)
+    for col in ["date_start", "time_start", "date_end", "time_end", "timeelapsed"]:
+        df[col] = df[col].astype(str).str.strip()
+
+    # Costruisce le stringhe datetime
+    start_str = df["date_start"] + " " + df["time_start"]
+    end_str   = df["date_end"]   + " " + df["time_end"]
+
+    # Converte in datetime, ma senza esplodere: le righe errate diventano NaT
+    df["start"] = pd.to_datetime(
+        start_str,
+        format="%d/%m/%Y %H:%M",
+        errors="coerce"
+    )
+    df["end"] = pd.to_datetime(
+        end_str,
+        format="%d/%m/%Y %H:%M",
+        errors="coerce"
+    )
+
+    # Converte la durata, righe non numeriche diventano NaN
+    df["duration"] = pd.to_numeric(df["timeelapsed"], errors="coerce")
+
+    # Rimuove tutte le righe con problemi gravi
+    before = len(df)
+    df = df.dropna(subset=["start", "end", "duration"])
+    after = len(df)
+
+    if after < before:
+        print(f"Righe scartate per dati non validi: {before - after}")
+
+    # Ordina per data di inizio
+    df = df.sort_values("start").reset_index(drop=True)
+    return df
+
 
 
 def compute_weekly_stats(df):

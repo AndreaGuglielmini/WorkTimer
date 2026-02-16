@@ -19,7 +19,7 @@ import sys
 # Local imports
 from dialogs import settings
 from dialogs import statistics
-from Worktimer_statistic.main import WT_Stat
+from Worktimer_statistic.main_stats import WT_Stat
 
 from DB_lib import work_project
 
